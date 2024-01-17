@@ -21,7 +21,10 @@ add_executable(Database2 Database/main.cpp
         Database/CLI.h
         Database/Expression.h
         Database/Parser.cpp
-        Database/Parser.h)
+        Database/Parser.h
+        Database/Column.h
+        Database/Row.h
+        Database/Table.h)
 target_link_libraries(
         Database2
         sfml-graphics

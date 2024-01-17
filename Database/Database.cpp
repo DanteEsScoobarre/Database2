@@ -152,16 +152,21 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
+
     std::vector<Row> result;
     Parser parser;
-    std::unique_ptr<Expression> whereExpression = parser.parseWhereClause(whereClause);
+
+    // Parse the whereClause into an Expression object
+    std::unique_ptr<Expression> whereExpression;
+    if (!whereClause.empty()) {
+        whereExpression = parser.parseWhereClause(whereClause);
+    }
 
     for (Row &row : tableIt->rows) {
-        if (whereClause.empty() || evaluateExpression(row, whereExpression)) {
-            // If there's no whereClause or the row matches the expression, add it to the result
+        // Check the condition only if whereExpression is not null
+        if (whereClause.empty() || (whereExpression && evaluateExpression(row, whereExpression))) {
             Row selectedRow(tableIt->columns); // Use the correct constructor
             for (const auto& colName : columns) {
-                // Fetch the value of a column
                 selectedRow.Data.push_back(row.getValue(colName));
             }
             result.push_back(selectedRow);
@@ -169,6 +174,7 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
     }
     return result;
 }
+
 
 auto Database::getTables() const -> const std::vector<Table> {
     return tables;

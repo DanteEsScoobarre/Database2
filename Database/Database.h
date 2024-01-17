@@ -4,33 +4,9 @@
 #include "Prerequestion.h"
 #include "Expression.h"
 #include "Parser.h"
-
-
-// Represents a column in a table
-struct Column {
-    std::string name;
-    std::string type;
-};
-
-// Represents a row in a table
-struct Row {
-    Row() : columns(nullptr) {}
-    Row(const std::vector<Column>& cols) : columns(&cols) {}
-    std::vector<std::string> Data;
-    const std::vector<Column>* columns;
-    void setColumns(const std::vector<Column>& cols);
-    auto getValue(const std::string& columnName) -> std::string const;
-
-
-};
-
-
-// Represents a table in the database
-struct Table {
-    std::string name;
-    std::vector<Column> columns;
-    std::vector<Row> rows;
-};
+#include "Column.h"
+#include "Row.h"
+#include "Table.h"
 
 class Database {
 public:
