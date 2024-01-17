@@ -14,6 +14,15 @@ private:
     Database& db;
     sf::RenderWindow window;
     // Additional members for handling input and output
+    void processCommand(const std::string &input);
+
+    void handleDDL(std::istringstream &iss, const std::string &command);
+
+    void handleDQL(std::istringstream &iss);
+
+    void handleDML(std::istringstream &iss, const std::string &command);
+
+    void displaySelectedRows(const std::vector<Row> &rows, const std::vector<std::string> &columns, bool selectAll);
 };
 
 #endif // CLI_H

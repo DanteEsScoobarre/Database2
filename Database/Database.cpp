@@ -51,16 +51,19 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
 }
 
 auto Database::validateDataType(const std::string &value, const std::string &type) -> bool {
-    // Basic validation logic (e.g., check if value is an integer for 'int' type)
-    // This is a simple placeholder; real-world applications would require more robust validation
     if (type == "int") {
-        return std::all_of(value.begin(), value.end(), [&value](char c) {
-            return std::isdigit(c) || (c == '-' && std::isdigit(*(value.begin())));
-        });
+        // Check if the entire string is a valid integer
+        return std::all_of(value.begin(), value.end(), [](char c) {
+            return std::isdigit(c) || c == '-';
+        }) && (value.size() > 1 ? value[1] != '-' : true);
+    } else if (type == "string") {
+        return true;
+    } else if (type == "bool") {
+        // Check if the string is either "true" or "false"
+        return value == "true" || value == "false";
     }
-    // Add more type validations as needed
-
-    return true;
+    std::cerr << "Unknown data type: " << type << std::endl;
+    return false;
 }
 
 auto Database::insertInto(const std::string &tableName, const Row &row) -> void {
@@ -151,14 +154,15 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
     }
     std::vector<Row> result;
     Parser parser;
-    Expression whereExpression = parser.parseWhereClause(whereClause);
-    for (Row row : tableIt->rows) {
+    std::unique_ptr<Expression> whereExpression = parser.parseWhereClause(whereClause);
+
+    for (Row &row : tableIt->rows) {
         if (whereClause.empty() || evaluateExpression(row, whereExpression)) {
             // If there's no whereClause or the row matches the expression, add it to the result
-            Row selectedRow;
+            Row selectedRow(tableIt->columns); // Use the correct constructor
             for (const auto& colName : columns) {
-                // Assuming Row has a method getValue to fetch the value of a column
-                selectedRow.Data.push_back(row.getValue(colName, (const std::vector<Column> &) columns));
+                // Fetch the value of a column
+                selectedRow.Data.push_back(row.getValue(colName));
             }
             result.push_back(selectedRow);
         }
@@ -178,26 +182,86 @@ auto Database::clear() -> void {
     tables.clear();
 }
 
-auto Database::matchCondition(const Row& row, const std::string& condition) -> bool {
-    // Implement logic to check if a row satisfies the condition
-    // Example: Parse 'column=value' and check against row data
-    return true; // Placeholder return
+bool Database::matchCondition(Row &row, const std::unique_ptr<Expression> &expression) {
+    if (!expression) {
+        throw std::runtime_error("Expression is null");
+    }
+
+    // Handling logical operators
+    if (expression->logicalOperator == "AND") {
+        return matchCondition(row, expression->left) && matchCondition(row, expression->right);
+    } else if (expression->logicalOperator == "OR") {
+        return matchCondition(row, expression->left) || matchCondition(row, expression->right);
+    }
+
+    // Assuming 'columns' is a member of 'Row' or can be accessed here
+    std::string columnValue = row.getValue(expression->column);
+
+    // Handle comparison operators
+    if (expression->operators == "=") {
+        return columnValue == expression->value;
+    } else if (expression->operators == "!=") {
+        return columnValue != expression->value;
+    } else if (expression->operators == ">") {
+        return columnValue > expression->value; // Note: this is a simplistic comparison
+    } else if (expression->operators == ">=") {
+        return columnValue >= expression->value; // Note: this is a simplistic comparison
+    } else if (expression->operators == "<=") {
+        return columnValue <= expression->value; // Note: this is a simplistic comparison
+    }
+
+    // If no valid operator found
+    throw std::runtime_error("Invalid expression operator");
 }
-auto Database::evaluateExpression(const Row& row, const Expression& expression) -> bool{
-// Evaluate the expression based on the row data
-// This function needs to be implemented to handle the expression tree
-// and compare it against the row's values
-    return true; // Placeholder for actual evaluation logic
+
+
+auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &expression) -> bool {
+    if (!expression) {
+        // Base case: end of a branch in the expression tree
+        return true;
+    }
+
+    if (expression->logicalOperator == "AND") {
+        return evaluateExpression(row, expression->left) && evaluateExpression(row, expression->right);
+    } else if (expression->logicalOperator == "OR") {
+        return evaluateExpression(row, expression->left) || evaluateExpression(row, expression->right);
+    }
+
+    // Get the value for the specified column from the row
+    std::string columnValue = row.getValue(expression->column);
+
+    // Evaluate the comparison
+    if (expression->operators == "=") {
+        return columnValue == expression->value;
+    } else if (expression->operators == "!=") {
+        return columnValue != expression->value;
+    } else if (expression->operators == ">") {
+        // Additional logic may be needed for proper numerical comparison
+        return columnValue > expression->value;
+    } // ... and other operators
+
+    // If the expression is not recognized or not handled
+    throw std::runtime_error("Unknown or unhandled expression operator");
 }
-std::string const Row::getValue(const std::string& columnName, const std::vector<Column>& columns) {
-    Row row;
-    for (size_t i = 0; i < columns.size(); ++i) {
-        if (columns[i].name == columnName && i < row.Data.size()) {
-            return row.Data[i];
+
+
+auto Row::getValue(const std::string &columnName) -> std::string const {
+    if (columns == nullptr) {
+        throw std::runtime_error("Columns pointer is null");
+    }
+
+    for (size_t i = 0; i < columns->size(); ++i) {
+        if ((*columns)[i].name == columnName && i < Data.size()) {
+            return Data[i];
         }
     }
+
     throw std::runtime_error("Column name not found");
-};
+}
+
+void Row::setColumns(const std::vector<Column> &cols) {
+    columns = &cols;
+}
 
 
 

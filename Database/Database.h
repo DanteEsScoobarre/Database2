@@ -1,7 +1,3 @@
-//
-// Created by rozsh on 16/01/2024.
-//
-
 #ifndef DATABASE2_DATABASE_H
 #define DATABASE2_DATABASE_H
 #pragma once
@@ -18,9 +14,13 @@ struct Column {
 
 // Represents a row in a table
 struct Row {
+    Row() : columns(nullptr) {}
+    Row(const std::vector<Column>& cols) : columns(&cols) {}
     std::vector<std::string> Data;
+    const std::vector<Column>* columns;
+    void setColumns(const std::vector<Column>& cols);
+    auto getValue(const std::string& columnName) -> std::string const;
 
-    auto getValue(const std::string& columnName, const std::vector<Column>& columns) -> std::string const;
 
 };
 
@@ -64,9 +64,9 @@ public:
     auto addTable(const Table &table) -> void;
 
     auto clear() -> void;
-    auto matchCondition(const Row &row, const std::string &condition) -> bool;
+    auto matchCondition(Row& row, const std::unique_ptr<Expression>& expression) -> bool;
 
-    auto evaluateExpression(const Row &row, const Expression &expression) -> bool ;
+    auto evaluateExpression(Row& row, const std::unique_ptr<Expression>& expression) -> bool ;
 private:
     std::vector<Table> tables;
 
