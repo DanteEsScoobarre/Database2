@@ -8,6 +8,11 @@ auto findTable(std::vector<Table> &tables, const std::string &tableName) {
 }
 
 auto Database::createTable(const std::string &tableName, const std::vector<Column> &columns) -> void {
+    std::cout << "Creating table '" << tableName << "' with columns:" << std::endl;
+    for (const auto& column : columns) {
+        std::cout << " - " << column.name << " (" << column.type << ")" << std::endl;
+    }
+
     if (findTable(tables, tableName) != tables.end()) {
         throw std::runtime_error("Table already exists.");
     }
@@ -39,7 +44,10 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
         throw std::runtime_error("Table not found.");
     }
 
-    auto colIt = std::find_if(it->columns.begin(), it->columns.end(), [&columnName](const Column &column) {
+    std::cout << "Searching for column '" << columnName << "' (Length: " << columnName.length() << ")" << std::endl;
+
+    auto colIt = std::ranges::find_if(it->columns.begin(), it->columns.end(), [&columnName](const Column &column) {
+        std::cout << "Checking against '" << column.name << "' (Length: " << column.name.length() << ")" << std::endl;
         return column.name == columnName;
     });
 
@@ -86,21 +94,13 @@ auto Database::insertInto(const std::string &tableName, const Row &row) -> void 
     tableIt->rows.push_back(row);
 }
 
-auto Database::update(const std::string &tableName, const Row &newRow, const std::string &whereClause) -> void {
+auto Database::update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
-    // Parse the whereClause (assuming format "column=value")
-    auto delimiterPos = whereClause.find('=');
-    if (delimiterPos == std::string::npos) {
-        throw std::runtime_error("Invalid where clause.");
-    }
-    std::string columnName = whereClause.substr(0, delimiterPos);
-    std::string value = whereClause.substr(delimiterPos + 1);
-
-    // Find the index of the column
+    // Find the index of the column to be updated
     auto columnIt = std::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
         return col.name == columnName;
     });
@@ -109,42 +109,35 @@ auto Database::update(const std::string &tableName, const Row &newRow, const std
     }
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
 
-    // Update rows
-    for (auto &row: tableIt->rows) {
-        if (row.Data.size() > columnIndex && row.Data[columnIndex] == value) {
-            row = newRow; // Update the entire row
+    // Update the specified column in all rows
+    for (auto &row : tableIt->rows) {
+        if (row.Data.size() > columnIndex) {
+            row.Data[columnIndex] = newValue; // Update the data at the specified column index
         }
     }
 }
 
-auto Database::deleteFrom(const std::string &tableName, const std::string &whereClause) -> void {
+auto Database::deleteDataFromColumn(const std::string &tableName, const std::string &columnName, const std::string &dataToDelete) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
-    // Parse the whereClause (assuming format "column=value")
-    auto delimiterPos = whereClause.find('=');
-    if (delimiterPos == std::string::npos) {
-        throw std::runtime_error("Invalid where clause.");
-    }
-    std::string columnName = whereClause.substr(0, delimiterPos);
-    std::string value = whereClause.substr(delimiterPos + 1);
-    auto columnIt = std::find_if(tableIt->columns.begin(), tableIt->columns.end(),
-                                 [&columnName](const Column &col) {
-                                     return col.name == columnName;
-                                 });
+    auto columnIt = std::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
+        return col.name == columnName;
+    });
     if (columnIt == tableIt->columns.end()) {
         throw std::runtime_error("Column not found.");
     }
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
 
-    auto newEnd = std::remove_if(tableIt->rows.begin(), tableIt->rows.end(),
-                                 [columnIndex, &value](const Row &row) {
-                                     return row.Data.size() > columnIndex && row.Data[columnIndex] == value;
-                                 });
-    tableIt->rows.erase(newEnd, tableIt->rows.end());
+    for (auto &row : tableIt->rows) {
+        if (row.Data.size() > columnIndex && row.Data[columnIndex] == dataToDelete) {
+            row.Data[columnIndex] = ""; // Or use some null value representation
+        }
+    }
 }
+
 
 auto Database::select(const std::string &tableName, const std::vector<std::string> &columns,
                       const std::string &whereClause) -> std::vector<Row> {

@@ -12,6 +12,7 @@ public:
         this->db;
         this->parser;
     }
+    auto displaySelectedRows(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) -> void;
     void executeCommand(const Command &command);
     void run();
 

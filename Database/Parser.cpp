@@ -29,6 +29,7 @@ auto Parser::tokenize(const std::string &str, char delimiter) -> std::vector<std
 
     return tokens;
 }
+
 auto Parser::isComparisonOperator(const std::string &token) -> bool {
     return token == "=" || token == "!=" || token == ">" || token == "<" || token == ">=" || token == "<=";
 }
@@ -116,34 +117,32 @@ auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
 }
 
 
-
-
-
-
 auto Parser::parseCreateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-    if (tokens.size() < 3 || tokens[1] != "table_name" || tokens[2] != "WITH") {
+    if (tokens.size() < 7 || tokens[2] != "WITH") {
         throw std::runtime_error("Invalid syntax for CREATE command");
     }
+
+    cmd.type = "CREATE";
     cmd.tableName = tokens[1];
-    size_t i = 3;
-    while (i < tokens.size()) {
-        if (tokens[i] != "{") {
-            throw std::runtime_error("Expected '{' before column definition");
+
+    size_t i = 3; // Start from the token after "WITH"
+    while (i + 4 < tokens.size()) {
+        if (tokens[i] != "{" || tokens[i + 4] != "}") {
+            throw std::runtime_error("Malformed column definition at position " + std::to_string(i));
         }
 
-        if (i + 3 >= tokens.size() || tokens[i + 3] != "}") {
-            throw std::runtime_error("Expected '}' after column definition");
+        if (tokens[i + 2] != ",") {
+            throw std::runtime_error("Expected ',' after column name at position " + std::to_string(i + 2));
         }
 
         Column column;
-        column.name = tokens[i + 1];
-        column.type = tokens[i + 2];
+        column.name = tokens[i + 1]; // Column name
+        column.type = tokens[i + 3]; // Column data type
 
         cmd.columns.push_back(column);
-        i += 4;
+        i += (i + 6 < tokens.size() && tokens[i + 6] == "{") ? 6 : 5; // Move to the next column definition
     }
 }
-
 
 auto Parser::parseDropCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
     if (tokens.size() != 2) {
@@ -154,17 +153,27 @@ auto Parser::parseDropCommand(const std::vector<std::string> &tokens, Command &c
 }
 
 auto Parser::parseAddCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-    if (tokens.size() < 6 || tokens[1] != "{" || tokens[3] != "}" || tokens[4] != "INTO") {
-        throw std::runtime_error("Invalid syntax for ADD command");
+    auto startBracketPos = std::find(tokens.begin(), tokens.end(), "{");
+    auto endBracketPos = std::find(tokens.begin(), tokens.end(), "}");
+
+    if (startBracketPos == tokens.end() || endBracketPos == tokens.end() || endBracketPos <= startBracketPos) {
+        throw std::runtime_error("Invalid syntax for ADD command: Brackets not found or malformed");
     }
 
-    ColumnDefinition columnDef;
-    columnDef.name = tokens[2]; // Assuming the third token is the column name
-    columnDef.type = tokens[3]; // Assuming the fourth token is the column type
+    if ((endBracketPos + 2 >= tokens.end()) || *(endBracketPos + 1) != "INTO") {
+        throw std::runtime_error("Invalid syntax for ADD command: 'INTO' not found or misplaced");
+    }
 
-    Column column = convertToColumn(columnDef);
+    std::string columnName = *(startBracketPos + 1);
+    std::string columnType = *(startBracketPos + 2);
+
+    if (*(startBracketPos + 2) != ",") {
+        throw std::runtime_error("Invalid syntax for ADD command: Missing comma in column definition");
+    }
+
+    Column column = {columnName, columnType};
     cmd.columns.push_back(column);
-    cmd.tableName = tokens[5]; // Assuming the sixth token is the table name
+    cmd.tableName = *(endBracketPos + 2); // Table name is after "INTO"
 }
 
 auto Parser::parseSelectCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
@@ -199,28 +208,24 @@ auto Parser::parseSelectCommand(const std::vector<std::string> &tokens, Command 
 }
 
 
-
 auto Parser::parseUpdateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
     if (tokens.size() < 6 || tokens[2] != "FROM" || tokens[4] != "WITH" || tokens[5] != "[") {
         throw std::runtime_error("Invalid syntax for UPDATE command");
     }
 
     cmd.type = "UPDATE";
-    cmd.columnName = tokens[1]; // Column name to be updated
-    cmd.tableName = tokens[3]; // Table name
+    cmd.columnName = tokens[1]; // The column name to be updated
+    cmd.tableName = tokens[3]; // The table name
 
     // Initialize an empty Row object for updatedData
     cmd.updatedData = Row();
 
-    // Extracting the updated data and its type
+    // Extracting the updated data
     size_t i = 6; // Start from the token after '['
-    while (i < tokens.size() && tokens[i] != "]") {
-        cmd.updatedData.Data.push_back(tokens[i]); // Add data to the Row's Data vector
-        i++;
-    }
-
-    if (i >= tokens.size() || tokens[i] != "]") {
-        throw std::runtime_error("Expected ']' in UPDATE command");
+    if (i < tokens.size() && tokens[i] != "]") {
+        cmd.updatedData.Data.push_back(tokens[i]); // Add the new value to the Row's Data vector
+    } else {
+        throw std::runtime_error("Expected new value in UPDATE command");
     }
 }
 
@@ -236,43 +241,56 @@ auto Parser::parseDeleteColumnCommand(const std::vector<std::string> &tokens, Co
 
 
 auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-    if (tokens.size() < 6 || tokens[1] != "[" || tokens[3] != "INTO" || tokens[5] != "IN") {
+    auto intoPos = std::ranges::find(tokens.begin(), tokens.end(), "INTO");
+    if (intoPos == tokens.end() || std::distance(tokens.begin(), intoPos) < 3 || *(intoPos + 2) != "IN") {
         throw std::runtime_error("Invalid syntax for INSERT command");
     }
 
     cmd.type = "INSERT";
-    cmd.columnName = tokens[4]; // The column name
-    cmd.tableName = tokens[6]; // The table name
+    cmd.columnName = *(intoPos + 1); // The column name
+    cmd.tableName = *(intoPos + 3); // The table name
 
-    // Initialize an empty Row object
-    cmd.data = Row();
-
-    // Handle the data to be inserted
-    // Assuming the first data item is inside brackets [data]
-    cmd.data.Data.push_back(tokens[2]); // Add the first data item
-
-    // Handle any additional data if provided in the command
-    for (size_t i = 7; i < tokens.size(); ++i) {
-        cmd.data.Data.push_back(tokens[i]);
+    // Reconstruct the data string from tokens[1] to the token before "INTO"
+    std::string data;
+    for (auto it = tokens.begin() + 1; it != intoPos; ++it) {
+        data += (it != tokens.begin() + 1 ? " " : "") + *it;
     }
+    // Remove the surrounding brackets from the data
+    if (data.front() == '[' && data.back() == ']') {
+        data = data.substr(1, data.length() - 2);
+    }
+
+    // Initialize an empty Row object and add the data
+    cmd.data = Row();
+    cmd.data.Data.push_back(data);
 }
 
-void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) {
-    if (tokens.size() != 5 || tokens[1] != "FROM" || tokens[3] != "IN") {
+void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) {  // Find the position of "FROM" and "IN" in the tokens
+    auto fromPos = std::find(tokens.begin(), tokens.end(), "FROM");
+    auto inPos = std::find(tokens.begin(), tokens.end(), "IN");
+
+    if (fromPos == tokens.end() || inPos == tokens.end() || fromPos > inPos || tokens.begin() + 1 >= fromPos) {
         throw std::runtime_error("Invalid syntax for DELETE command");
     }
 
     cmd.type = "DELETE";
-    cmd.columnName = tokens[2]; // The column name from which data will be deleted
-    cmd.tableName = tokens[4]; // The table name
+    cmd.tableName = *(inPos + 1); // Table name is the token after "IN"
+
+    // Reconstruct the data string from tokens[1] to the token before "FROM"
+    std::string data;
+    for (auto it = tokens.begin() + 1; it != fromPos; ++it) {
+        data += (it != tokens.begin() + 1 ? " " : "") + *it;
+    }
+    // Remove the surrounding brackets from the data
+    if (data.front() == '[' && data.back() == ']') {
+        data = data.substr(1, data.length() - 2);
+    }
+
+    cmd.columnName = *(fromPos + 1); // Column name is the token after "FROM"
+    cmd.whereClause = data; // Use the reconstructed data as the whereClause
 }
 
-Column Parser::convertToColumn(const ColumnDefinition& columnDef) {
-    Column column;
-    column.name = columnDef.name;
-    column.type = columnDef.type;
-    return column;
-}
+
 
 auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr<Expression> {
     if (whereClause.empty()) {

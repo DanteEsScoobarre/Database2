@@ -21,6 +21,7 @@ struct Command {
     Row updatedData;
     Row data;
     std::vector<std::string> additionalData;
+    std::string value;
 };
 
 class Parser {
@@ -30,6 +31,7 @@ public:
     auto parseWhereClause(const std::string &whereClause)-> std::unique_ptr<Expression>;
     auto parseExpression(std::vector<std::string> &tokens, size_t &currentIndex) -> std::unique_ptr<Expression>;
     auto isComparisonOperator(const std::string &token) -> bool;
+
 private:
 
     auto parseCreateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
@@ -40,7 +42,7 @@ private:
     auto parseDeleteColumnCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
     auto parseInsertCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
     auto parseDeleteDataCommand(std::vector<std::string> &token, Command &cmd) -> void;
-    auto convertToColumn(const ColumnDefinition& columnDef) -> Column;
+
 
 
 
