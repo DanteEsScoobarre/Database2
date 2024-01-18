@@ -60,7 +60,7 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
 
 auto Database::validateDataType(const std::string &value, const std::string &type) -> bool {
     if (type == "int") {
-        // Check if the entire string is a valid integer
+        if (value.empty()) return false;
         return std::ranges::all_of(value.begin(), value.end(), [](char c) {
             return std::isdigit(c) || c == '-';
         }) && (value.size() > 1 ? value[1] != '-' : true);
@@ -68,7 +68,7 @@ auto Database::validateDataType(const std::string &value, const std::string &typ
         return true;
     } else if (type == "bool") {
         // Check if the string is either "true" or "false"
-        return value == "true" || value == "false";
+        return value == "true" || value == "false" || value == "NULL";
     }
     std::cerr << "Unknown data type: " << type << std::endl;
     return false;
