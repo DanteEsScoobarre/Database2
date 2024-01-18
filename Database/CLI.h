@@ -15,6 +15,8 @@ public:
     auto displaySelectedRows(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) -> void;
     void executeCommand(const Command &command);
     void run();
+    void handleSaveCommand(const std::string& filename);
+    void handleLoadCommand(const std::string& filename);
 
 private:
     Database& db;

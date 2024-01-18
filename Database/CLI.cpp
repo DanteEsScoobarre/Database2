@@ -50,14 +50,17 @@ void CLI::executeCommand(const Command &command) {
             db.removeColumn(command.tableName, command.columnName);
         } else if (command.type == "SELECT") {
             std::vector<std::string> columnNames;
-            for (const auto &column : command.columns) {
+            for (const auto &column: command.columns) {
                 columnNames.push_back(column.name); // Extracting the name from each Column
             }
 
             auto rows = db.select(command.tableName, columnNames, command.whereClause);
             displaySelectedRows(rows, columnNames);
-        }
-        else {
+        } else if (command.type == "SAVE") {
+            handleSaveCommand(command.value);
+        } else if (command.type == "LOAD") {
+            handleLoadCommand(command.value);
+        } else {
             throw std::runtime_error("Invalid command");
         }
 
@@ -67,11 +70,29 @@ void CLI::executeCommand(const Command &command) {
 }
 
 auto CLI::displaySelectedRows(const std::vector<Row> &rows, const std::vector<std::string> &columnNames) -> void {
-    for (Row row : rows) {
-        for (const auto& columnName : columnNames) {
+    for (Row row: rows) {
+        for (const auto &columnName: columnNames) {
             std::cout << row.getValue(columnName) << " ";
         }
         std::cout << std::endl;
+    }
+}
+
+void CLI::handleSaveCommand(const std::string &filename) {
+    try {
+        FileOps::saveDatabase(db, filename);
+        std::cout << "Database saved successfully to " << filename << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Error saving database: " << e.what() << std::endl;
+    }
+}
+
+void CLI::handleLoadCommand(const std::string &filename) {
+    try {
+        db = FileOps::loadDatabase(filename);
+        std::cout << "Database loaded successfully from " << filename << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Error loading database: " << e.what() << std::endl;
     }
 }
 

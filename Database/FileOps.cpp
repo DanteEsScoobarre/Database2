@@ -10,14 +10,14 @@ auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> v
         throw std::runtime_error("Unable to open file for writing: " + filename);
     }
 
-    for (const auto &table: db.getTables()) {
+    for (const auto &table : db.getTables()) {
         file << "TABLE " << table.name << "\n";
-        for (const auto &column: table.columns) {
+        for (const auto &column : table.columns) {
             file << "COLUMN " << column.name << " " << column.type << "\n";
         }
-        for (const auto &row: table.rows) {
+        for (const auto &row : table.rows) {
             file << "ROW";
-            for (const auto &value: row.Data) {
+            for (const auto &value : row.Data) {
                 file << " " << value;
             }
             file << "\n";
