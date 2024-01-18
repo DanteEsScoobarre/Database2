@@ -153,8 +153,8 @@ auto Parser::parseDropCommand(const std::vector<std::string> &tokens, Command &c
 }
 
 auto Parser::parseAddCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-    auto startBracketPos = std::find(tokens.begin(), tokens.end(), "{");
-    auto endBracketPos = std::find(tokens.begin(), tokens.end(), "}");
+    auto startBracketPos = std::ranges::find(tokens.begin(), tokens.end(), "{");
+    auto endBracketPos = std::ranges::find(tokens.begin(), tokens.end(), "}");
 
     if (startBracketPos == tokens.end() || endBracketPos == tokens.end() || endBracketPos <= startBracketPos) {
         throw std::runtime_error("Invalid syntax for ADD command: Brackets not found or malformed");
@@ -266,8 +266,8 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
 }
 
 void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) {  // Find the position of "FROM" and "IN" in the tokens
-    auto fromPos = std::find(tokens.begin(), tokens.end(), "FROM");
-    auto inPos = std::find(tokens.begin(), tokens.end(), "IN");
+    auto fromPos = std::ranges::find(tokens.begin(), tokens.end(), "FROM");
+    auto inPos = std::ranges::find(tokens.begin(), tokens.end(), "IN");
 
     if (fromPos == tokens.end() || inPos == tokens.end() || fromPos > inPos || tokens.begin() + 1 >= fromPos) {
         throw std::runtime_error("Invalid syntax for DELETE command");

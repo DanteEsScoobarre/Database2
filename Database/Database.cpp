@@ -2,14 +2,14 @@
 
 
 auto findTable(std::vector<Table> &tables, const std::string &tableName) {
-    return std::find_if(tables.begin(), tables.end(), [&tableName](const Table &table) {
+    return std::ranges::find_if(tables.begin(), tables.end(), [&tableName](const Table &table) {
         return table.name == tableName;
     });
 }
 
 auto Database::createTable(const std::string &tableName, const std::vector<Column> &columns) -> void {
     std::cout << "Creating table '" << tableName << "' with columns:" << std::endl;
-    for (const auto& column : columns) {
+    for (const auto &column: columns) {
         std::cout << " - " << column.name << " (" << column.type << ")" << std::endl;
     }
 
@@ -61,7 +61,7 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
 auto Database::validateDataType(const std::string &value, const std::string &type) -> bool {
     if (type == "int") {
         // Check if the entire string is a valid integer
-        return std::all_of(value.begin(), value.end(), [](char c) {
+        return std::ranges::all_of(value.begin(), value.end(), [](char c) {
             return std::isdigit(c) || c == '-';
         }) && (value.size() > 1 ? value[1] != '-' : true);
     } else if (type == "string") {
@@ -94,14 +94,15 @@ auto Database::insertInto(const std::string &tableName, const Row &row) -> void 
     tableIt->rows.push_back(row);
 }
 
-auto Database::update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void {
+auto
+Database::update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
     // Find the index of the column to be updated
-    auto columnIt = std::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
+    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
         return col.name == columnName;
     });
     if (columnIt == tableIt->columns.end()) {
@@ -110,20 +111,21 @@ auto Database::update(const std::string &tableName, const std::string &columnNam
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
 
     // Update the specified column in all rows
-    for (auto &row : tableIt->rows) {
+    for (auto &row: tableIt->rows) {
         if (row.Data.size() > columnIndex) {
             row.Data[columnIndex] = newValue; // Update the data at the specified column index
         }
     }
 }
 
-auto Database::deleteDataFromColumn(const std::string &tableName, const std::string &columnName, const std::string &dataToDelete) -> void {
+auto Database::deleteDataFromColumn(const std::string &tableName, const std::string &columnName,
+                                    const std::string &dataToDelete) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
-    auto columnIt = std::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
+    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
         return col.name == columnName;
     });
     if (columnIt == tableIt->columns.end()) {
@@ -131,7 +133,7 @@ auto Database::deleteDataFromColumn(const std::string &tableName, const std::str
     }
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
 
-    for (auto &row : tableIt->rows) {
+    for (auto &row: tableIt->rows) {
         if (row.Data.size() > columnIndex && row.Data[columnIndex] == dataToDelete) {
             row.Data[columnIndex] = ""; // Or use some null value representation
         }
@@ -155,11 +157,11 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
         whereExpression = parser.parseWhereClause(whereClause);
     }
 
-    for (Row &row : tableIt->rows) {
+    for (Row &row: tableIt->rows) {
         // Check the condition only if whereExpression is not null
         if (whereClause.empty() || (whereExpression && evaluateExpression(row, whereExpression))) {
             Row selectedRow(tableIt->columns); // Use the correct constructor
-            for (const auto& colName : columns) {
+            for (const auto &colName: columns) {
                 selectedRow.Data.push_back(row.getValue(colName));
             }
             result.push_back(selectedRow);
@@ -181,7 +183,7 @@ auto Database::clear() -> void {
     tables.clear();
 }
 
-bool Database::matchCondition(Row &row, const std::unique_ptr<Expression> &expression) {
+auto Database::matchCondition(Row &row, const std::unique_ptr<Expression> &expression) -> bool {
     if (!expression) {
         throw std::runtime_error("Expression is null");
     }
@@ -218,15 +220,7 @@ auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &e
     if (!expression) {
         // Base case: end of a branch in the expression tree
         return true;
-    }
-
-    if (expression->logicalOperator == "AND") {
-        return evaluateExpression(row, expression->left) && evaluateExpression(row, expression->right);
-    } else if (expression->logicalOperator == "OR") {
-        return evaluateExpression(row, expression->left) || evaluateExpression(row, expression->right);
-    }
-
-    // Get the value for the specified column from the row
+    }// Get the value for the specified column from the row
     std::string columnValue = row.getValue(expression->column);
 
     // Evaluate the comparison
@@ -235,9 +229,16 @@ auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &e
     } else if (expression->operators == "!=") {
         return columnValue != expression->value;
     } else if (expression->operators == ">") {
-        // Additional logic may be needed for proper numerical comparison
         return columnValue > expression->value;
-    } // ... and other operators
+    } else if (expression->operators == ">=") {
+        return columnValue >= expression->value;
+    } else if (expression->operators == "<=") {
+        return columnValue <= expression->value;
+    } else if (expression->logicalOperator == "AND") {
+        return evaluateExpression(row, expression->left) && evaluateExpression(row, expression->right);
+    } else if (expression->logicalOperator == "OR") {
+        return evaluateExpression(row, expression->left) || evaluateExpression(row, expression->right);
+    }
 
     // If the expression is not recognized or not handled
     throw std::runtime_error("Unknown or unhandled expression operator");
@@ -258,9 +259,6 @@ auto Row::getValue(const std::string &columnName) -> std::string const {
     throw std::runtime_error("Column name not found");
 }
 
-void Row::setColumns(const std::vector<Column> &cols) {
-    columns = &cols;
-}
 
 
 

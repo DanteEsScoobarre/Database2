@@ -1,7 +1,7 @@
 #include "CLI.h"
 
 
-void CLI::run() {
+auto CLI::run() -> void {
     std::string input;
     while (true) {
         std::cout << "> ";
@@ -22,7 +22,7 @@ void CLI::run() {
 }
 
 
-void CLI::executeCommand(const Command &command) {
+auto CLI::executeCommand(const Command &command) -> void {
     try {
         if (command.type == "CREATE") {
             db.createTable(command.tableName, command.columns);
@@ -78,7 +78,7 @@ auto CLI::displaySelectedRows(const std::vector<Row> &rows, const std::vector<st
     }
 }
 
-void CLI::handleSaveCommand(const std::string &filename) {
+auto CLI::handleSaveCommand(const std::string &filename) -> void {
     try {
         FileOps::saveDatabase(db, filename);
         std::cout << "Database saved successfully to " << filename << std::endl;
@@ -87,7 +87,7 @@ void CLI::handleSaveCommand(const std::string &filename) {
     }
 }
 
-void CLI::handleLoadCommand(const std::string &filename) {
+auto CLI::handleLoadCommand(const std::string &filename) -> void {
     try {
         db = FileOps::loadDatabase(filename);
         std::cout << "Database loaded successfully from " << filename << std::endl;

@@ -4,24 +4,21 @@
 #include "Database.h"
 #include "Parser.h"
 #include "FileOps.h"
-#include <SFML/Graphics.hpp>
 
 class CLI {
 public:
     CLI(Database& Database, Parser& parser) : db(Database), parser(parser) {
-        this->db;
-        this->parser;
     }
     auto displaySelectedRows(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) -> void;
-    void executeCommand(const Command &command);
-    void run();
-    void handleSaveCommand(const std::string& filename);
-    void handleLoadCommand(const std::string& filename);
+    auto executeCommand(const Command &command) -> void;
+    auto run() -> void;
+    auto handleSaveCommand(const std::string& filename) -> void;
+    auto handleLoadCommand(const std::string& filename) -> void;
 
 private:
     Database& db;
     Parser& parser;
-    sf::RenderWindow window;
+
 
 
 };
