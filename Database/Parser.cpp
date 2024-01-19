@@ -3,6 +3,18 @@
 auto Parser::tokenize(const std::string &str, char delimiter) -> std::vector<std::string> {
     std::vector<std::string> tokens;
     std::string currentToken;
+/* coś tu jest nie tak bo przy komendzie  SAVE dupa.txt ta funcja wyrzuca taki wektor
+ *  SAVE
+ *  dupa
+ *  .
+ *  txt
+ *
+ *  żeby operacja save zadziałała z czymś innym niż plikami bez rozszerzenia  to trzeba by
+ *  to napisać to inaczej, np przy pomocy wyrażeń regularnych
+ *
+ * */
+
+
 
     for (char ch: str) {
         if (std::isspace(ch)) {
@@ -110,10 +122,23 @@ auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
         parseInsertCommand(tokens, cmd);
     } else if (cmd.type == "REMOVE") {
         parseDeleteColumnCommand(tokens, cmd);
+ //ZABRAKŁO TUTAJ OBSLUGI PRZYPADKU SAVE, DOPISZ SOBIE JESZCE OBSŁUEGE LOAD
+    } else if (cmd.type == "SAVE") {
+        parseSaveCommand(tokens, cmd);
     }
 
 
+
     return cmd;
+}
+
+
+auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
+    if (tokens.size() != 2) {
+        throw std::runtime_error("Invalid syntax for SAVE command");
+    }
+
+    cmd.value = tokens[1];
 }
 
 
