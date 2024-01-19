@@ -13,7 +13,6 @@ class Database {
 public:
     Database() = default;
 
-    auto validateDataType(const std::string &value, const std::string &type) -> bool;
 
     // DDL Operations
     auto createTable(const std::string &tableName, const std::vector<Column> &columns) -> void;
@@ -41,7 +40,6 @@ public:
 
     auto addTable(const Table &table) -> void;
 
-    auto clear() -> void;
 
     auto matchCondition(Row &row, const std::unique_ptr<Expression> &expression) -> bool;
 
@@ -49,9 +47,6 @@ public:
 
 private:
     std::vector<Table> tables;
-    auto isInteger(const std::string &value) -> bool;
-    auto isBoolean(const std::string &value) -> bool;
-
 };
 
 

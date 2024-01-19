@@ -36,4 +36,4 @@ IF (WIN32)
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:Database2> $<TARGET_FILE_DIR:Database2>
             COMMAND_EXPAND_LISTS
     )
-    ENDIF ()
+ENDIF ()

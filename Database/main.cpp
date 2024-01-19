@@ -2,7 +2,7 @@
 #include "CLI.h"
 
 /*
- Dane przechowywane są w kolumnach, które zawierają nazwę kolumny oraz typ danych jakie przechowują. Następnie kolumny
+ Dane przechowywane są w kolumnach i rzędach, które zawierają nazwę kolumny oraz typ danych jakie przechowują. Następnie kolumny
  tworzą rzędy będące vectorem kolumn. Dopóki użytkownik nie wprowadzi komendy SAVE wszystkie dane są przechowywane w polach
  klas.
  SaveToFile - WIP

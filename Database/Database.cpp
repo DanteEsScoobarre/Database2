@@ -58,20 +58,10 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
     it->columns.erase(colIt);
 }
 
-auto Database::validateDataType(const std::string &value, const std::string &type) -> bool {
-    if (type == "int") {
-        return isInteger(value);
-    } else if (type == "bool") {
-        return isBoolean(value);
-    } else if (type == "string") {
-        return true;
-    } else {
-        // Handle other types or throw an error
-    }
-    return false;
-}
+
 
 auto Database::insertInto(const std::string &tableName, const Row &row) -> void {
+    Parser parser;
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
@@ -83,7 +73,7 @@ auto Database::insertInto(const std::string &tableName, const Row &row) -> void 
 
     // Validate data types for each column
     for (std::size_t i = 0; i < row.Data.size(); ++i) {
-        if (!validateDataType(row.Data[i], tableIt->columns[i].type)) {
+        if (!parser.validateDataType(row.Data[i], tableIt->columns[i].type)) {
             throw std::runtime_error("Data type mismatch for column: " + tableIt->columns[i].name);
         }
     }
@@ -176,9 +166,7 @@ auto Database::addTable(const Table &table) -> void {
     tables.push_back(table);
 }
 
-auto Database::clear() -> void {
-    tables.clear();
-}
+
 
 auto Database::matchCondition(Row &row, const std::unique_ptr<Expression> &expression) -> bool {
     if (!expression) {
@@ -241,18 +229,6 @@ auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &e
     throw std::runtime_error("Unknown or unhandled expression operator");
 }
 
-auto Database::isInteger(const std::string &value) -> bool {
-    if (value.empty() || ((!isdigit(value[0])) && (value[0] != '-') && (value[0] != '+'))) return false;
-
-    char * p;
-    strtol(value.c_str(), &p, 10);
-
-    return (*p == 0);
-}
-
-auto Database::isBoolean(const std::string &value) -> bool {
-    return (value == "true" || value == "false" || value == "NULL");
-}
 
 
 auto Row::getValue(const std::string &columnName) -> std::string const {
@@ -268,6 +244,9 @@ auto Row::getValue(const std::string &columnName) -> std::string const {
 
     throw std::runtime_error("Column name not found");
 }
+
+
+
 
 
 

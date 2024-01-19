@@ -265,9 +265,10 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
     cmd.data.Data.push_back(data);
 }
 
+
 void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) {  // Find the position of "FROM" and "IN" in the tokens
-    auto fromPos = std::ranges::find(tokens.begin(), tokens.end(), "FROM");
-    auto inPos = std::ranges::find(tokens.begin(), tokens.end(), "IN");
+    auto fromPos = std::find(tokens.begin(), tokens.end(), "FROM");
+    auto inPos = std::find(tokens.begin(), tokens.end(), "IN");
 
     if (fromPos == tokens.end() || inPos == tokens.end() || fromPos > inPos || tokens.begin() + 1 >= fromPos) {
         throw std::runtime_error("Invalid syntax for DELETE command");
@@ -292,6 +293,7 @@ void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &c
 
 
 
+
 auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr<Expression> {
     if (whereClause.empty()) {
         return nullptr; // No condition provided
@@ -309,7 +311,7 @@ Parser::extractAndValidateData(const std::string &dataStr, const std::string &da
     std::vector<std::string> invalidData;
 
     for (const auto& token : dataTokens) {
-        if (db.validateDataType(token, dataType)) {
+        if (validateDataType(token, dataType)) {
             validatedData.push_back(token);
         } else {
             invalidData.push_back(token);
@@ -326,6 +328,44 @@ Parser::extractAndValidateData(const std::string &dataStr, const std::string &da
 
     return validatedData;
 }
+
+auto Parser::joinValidatedData(const std::vector<std::string>& data) -> std::string {
+    std::string result;
+    for (const auto& item : data) {
+        if (!result.empty()) {
+            result += ", ";
+        }
+        result += item;
+    }
+    return result;
+}
+
+auto Parser::validateDataType(const std::string &value, const std::string &type) -> bool {
+    if (type == "int") {
+        return isInteger(value);
+    } else if (type == "bool") {
+        return isBoolean(value);
+    } else if (type == "string") {
+        return true;
+    } else {
+        // Handle other types or throw an error
+    }
+    return false;
+}
+auto Parser::isBoolean(const std::string &value) -> bool {
+    return (value == "true" || value == "false" || value == "NULL");
+}
+
+auto Parser::isInteger(const std::string &value) -> bool {
+    if (value.empty() || ((!isdigit(value[0])) && (value[0] != '-') && (value[0] != '+'))) return false;
+
+    char * p;
+    strtol(value.c_str(), &p, 10);
+
+    return (*p == 0);
+}
+
+
 
 
 

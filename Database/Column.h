@@ -8,4 +8,5 @@ struct Column {
     std::string type;
 };
 
+
 #endif //DATABASE2_COLUMN_H

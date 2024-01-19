@@ -17,7 +17,6 @@ struct Row {
     std::vector<std::string> Data;
     const std::vector<Column> *columns;
 
-    void setColumns(const std::vector<Column> &cols);
 
     auto getValue(const std::string &columnName) -> std::string const;
 

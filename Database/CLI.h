@@ -18,9 +18,6 @@ public:
 private:
     Database& db;
     Parser& parser;
-
-
-
 };
 
 #endif // CLI_H

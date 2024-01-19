@@ -7,10 +7,6 @@
 #include "Column.h"
 
 
-struct ColumnDefinition {
-    std::string name;
-    std::string type;
-};
 struct Command {
 
     std::string type; // CREATE, DROP, ADD, etc.
@@ -23,15 +19,21 @@ struct Command {
     std::vector<std::string> additionalData;
     std::string value;
 };
-
+class Database;
 class Parser {
-    Database &db;
+
+
 public:
-   auto tokenize(const std::string &str, char delimiter) -> std::vector<std::string>;
+
+
+    auto tokenize(const std::string &str, char delimiter) -> std::vector<std::string>;
     auto parseSQLCommand(const std::string &commandStr) -> Command;
     auto parseWhereClause(const std::string &whereClause)-> std::unique_ptr<Expression>;
     auto parseExpression(std::vector<std::string> &tokens, size_t &currentIndex) -> std::unique_ptr<Expression>;
     auto isComparisonOperator(const std::string &token) -> bool;
+    auto validateDataType(const std::string &value, const std::string &type) -> bool;
+
+
 
 
 private:
@@ -45,11 +47,9 @@ private:
     auto parseInsertCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
     auto parseDeleteDataCommand(std::vector<std::string> &token, Command &cmd) -> void;
     auto extractAndValidateData(const std::string& dataStr, const std::string& dataType) -> std::vector<std::string>;
-
-
-
-
-
+    auto joinValidatedData(const std::vector<std::string>& data) -> std::string;
+    auto isBoolean(const std::string &value) -> bool;
+    auto isInteger(const std::string &value) -> bool;
 };
 
 #endif // PARSER_H
