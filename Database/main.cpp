@@ -60,7 +60,8 @@
 
 
 */
-int main() {
+//taki myczek, pierszy argument argv to jest lokalizacja pliku wykonywalnego czy jakoś tak
+int main(int argc, char *argv[]) {
     Database db;
     Parser parser;
     CLI cli(db, parser);

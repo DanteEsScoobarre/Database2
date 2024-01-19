@@ -5,11 +5,17 @@
 #include "FileOps.h"
 
 auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> void {
-    std::ofstream file(filename);
+
+   //O TO MUSIAŁEM ZMIENIĆ BO COŚ NIE CHCIAŁO PISAC DO PLIKU JAK BYŁO PO STAREMU
+    std::ofstream file;
+    file.open("C:/test/dupa.txt");
+
     if (!file.is_open()) {
         throw std::runtime_error("Unable to open file for writing: " + filename);
     }
 
+    //NIE CHCE MI SIE WNIKAĆ W TĄ LOGIKE NIŻEJ, SPRAWDZIŁEM TYLKO ŻE DZIAŁA
+    file<<"test";
     for (const auto &table : db.getTables()) {
         file << "TABLE " << table.name << "\n";
         for (const auto &column : table.columns) {
@@ -25,6 +31,8 @@ auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> v
         file << "ENDTABLE\n";
     }
 
+    //W SUMIE NIE WIEM CZY TEN FLUSH JEST POTRZEBNY
+    file.flush();
     file.close();
 }
 

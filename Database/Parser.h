@@ -50,6 +50,8 @@ private:
     auto joinValidatedData(const std::vector<std::string>& data) -> std::string;
     auto isBoolean(const std::string &value) -> bool;
     auto isInteger(const std::string &value) -> bool;
+
+    void parseSaveCommand(const std::vector<std::string> &tokens, Command &cmd);
 };
 
 #endif // PARSER_H
