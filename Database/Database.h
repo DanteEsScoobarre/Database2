@@ -49,7 +49,8 @@ public:
 
 private:
     std::vector<Table> tables;
-
+    auto isInteger(const std::string &value) -> bool;
+    auto isBoolean(const std::string &value) -> bool;
 
 };
 

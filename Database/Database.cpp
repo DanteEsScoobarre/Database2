@@ -60,17 +60,14 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
 
 auto Database::validateDataType(const std::string &value, const std::string &type) -> bool {
     if (type == "int") {
-        if (value.empty()) return false;
-        return std::ranges::all_of(value.begin(), value.end(), [](char c) {
-            return std::isdigit(c) || c == '-';
-        }) && (value.size() > 1 ? value[1] != '-' : true);
+        return isInteger(value);
+    } else if (type == "bool") {
+        return isBoolean(value);
     } else if (type == "string") {
         return true;
-    } else if (type == "bool") {
-        // Check if the string is either "true" or "false"
-        return value == "true" || value == "false" || value == "NULL";
+    } else {
+        // Handle other types or throw an error
     }
-    std::cerr << "Unknown data type: " << type << std::endl;
     return false;
 }
 
@@ -242,6 +239,19 @@ auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &e
 
     // If the expression is not recognized or not handled
     throw std::runtime_error("Unknown or unhandled expression operator");
+}
+
+auto Database::isInteger(const std::string &value) -> bool {
+    if (value.empty() || ((!isdigit(value[0])) && (value[0] != '-') && (value[0] != '+'))) return false;
+
+    char * p;
+    strtol(value.c_str(), &p, 10);
+
+    return (*p == 0);
+}
+
+auto Database::isBoolean(const std::string &value) -> bool {
+    return (value == "true" || value == "false" || value == "NULL");
 }
 
 

@@ -302,6 +302,32 @@ auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr
     return parseExpression(tokens, currentIndex);
 }
 
+auto
+Parser::extractAndValidateData(const std::string &dataStr, const std::string &dataType) -> std::vector<std::string> {
+    std::vector<std::string> dataTokens = tokenize(dataStr, ',');
+    std::vector<std::string> validatedData;
+    std::vector<std::string> invalidData;
+
+    for (const auto& token : dataTokens) {
+        if (db.validateDataType(token, dataType)) {
+            validatedData.push_back(token);
+        } else {
+            invalidData.push_back(token);
+        }
+    }
+
+    if (!invalidData.empty()) {
+        std::string errorMessage = "Invalid data detected: ";
+        for (const auto& invalid : invalidData) {
+            errorMessage += invalid + " ";
+        }
+        throw std::runtime_error(errorMessage);
+    }
+
+    return validatedData;
+}
+
+
 
 
 

@@ -25,12 +25,14 @@ struct Command {
 };
 
 class Parser {
+    Database &db;
 public:
    auto tokenize(const std::string &str, char delimiter) -> std::vector<std::string>;
     auto parseSQLCommand(const std::string &commandStr) -> Command;
     auto parseWhereClause(const std::string &whereClause)-> std::unique_ptr<Expression>;
     auto parseExpression(std::vector<std::string> &tokens, size_t &currentIndex) -> std::unique_ptr<Expression>;
     auto isComparisonOperator(const std::string &token) -> bool;
+
 
 private:
 
@@ -42,7 +44,7 @@ private:
     auto parseDeleteColumnCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
     auto parseInsertCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
     auto parseDeleteDataCommand(std::vector<std::string> &token, Command &cmd) -> void;
-
+    auto extractAndValidateData(const std::string& dataStr, const std::string& dataType) -> std::vector<std::string>;
 
 
 
