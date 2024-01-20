@@ -25,10 +25,9 @@ public:
 
     // Operacje DML
     auto insertInto(const std::string &tableName, const std::string &columnName, Row inputRow) -> void;
-    auto update(const std::string &tableName, const std::string &columnName,
-                Row newValue, const std::string &whereClause) -> void;
+    auto update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void;
     auto deleteDataFromColumn(const std::string &tableName, const std::string &columnName,
-                              const Row& dataToDelete) -> void;
+                              const std::string &dataToDelete) -> void;
 
     // Operacje DQL
     auto select(const std::string &tableName, const std::vector<std::string> &columns,

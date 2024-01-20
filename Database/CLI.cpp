@@ -41,10 +41,10 @@ auto CLI::executeCommand(const Command &command) -> void {
                 throw std::runtime_error("No data provided for update");
             }
             std::string newValue = command.updatedData.Data[0];
-            db.update(command.tableName, command.columnName, Row(command.data), command.whereClause);
+            db.update(command.tableName, command.columnName, newValue);
         } else if (command.type == "DELETE") {
 
-            db.deleteDataFromColumn(command.tableName, command.columnName, Row(command.data));
+            db.deleteDataFromColumn(command.tableName, command.columnName, command.dataToDelete);
         } else if (command.type == "REMOVE") {
             db.removeColumn(command.tableName, command.columnName);
         } else if (command.type == "SELECT") {

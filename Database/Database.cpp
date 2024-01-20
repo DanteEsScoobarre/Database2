@@ -101,79 +101,45 @@ auto Database::insertInto(const std::string &tableName, const std::string &colum
 }
 
 
-auto Database::update(const std::string &tableName, const std::string &columnName,
-                      Row newValue, const std::string &whereClause) -> void {
+auto
+Database::update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
-    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(),
-                                         [&columnName](const Column &col) {
-                                             return col.name == columnName;
-                                         });
+
+    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
+        return col.name == columnName;
+    });
     if (columnIt == tableIt->columns.end()) {
         throw std::runtime_error("Column not found.");
     }
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
-
-
-    if (newValue.Data.size() <= columnIndex) {
-        throw std::runtime_error("New value does not contain data for the specified column.");
-    }
-    const std::string &updatedValue = newValue.Data[columnIndex];
-
-
-    Parser parser;
-    std::unique_ptr<Expression> whereExpression;
-    if (!whereClause.empty()) {
-        whereExpression = parser.parseWhereClause(whereClause);
-    }
 
     for (auto &row: tableIt->rows) {
         if (row.Data.size() > columnIndex) {
-
-            if (whereClause.empty() || (whereExpression && evaluateExpression(row, whereExpression))) {
-                row.Data[columnIndex] = updatedValue;
-            }
+            row.Data[columnIndex] = newValue;
         }
     }
 }
-
-
 auto Database::deleteDataFromColumn(const std::string &tableName, const std::string &columnName,
-                                    const Row &dataToDelete) -> void {
+                                    const std::string &dataToDelete) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
         throw std::runtime_error("Table not found.");
     }
 
-    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(),
-                                         [&columnName](const Column &col) {
-                                             return col.name == columnName;
-                                         });
+    auto columnIt = std::ranges::find_if(tableIt->columns.begin(), tableIt->columns.end(), [&columnName](const Column &col) {
+        return col.name == columnName;
+    });
     if (columnIt == tableIt->columns.end()) {
         throw std::runtime_error("Column not found.");
     }
     std::size_t columnIndex = std::distance(tableIt->columns.begin(), columnIt);
 
-    if (dataToDelete.Data.size() <= columnIndex) {
-        throw std::runtime_error("Data to delete does not contain data for the specified column.");
-    }
-    const std::string &dataToDeleteValue = dataToDelete.Data[columnIndex];
-
-
-    std::string columnType = getColumnType(tableIt->name, columnName);
-
-
-    if ((columnType == "int" && !isInteger(dataToDeleteValue)) ||
-        (columnType == "string" && !isString(dataToDeleteValue)) ||
-        (columnType == "bool" && !isBoolean(dataToDeleteValue))) {
-        throw std::runtime_error("Data type mismatch for column: " + columnName);
-    }
-
     for (auto &row: tableIt->rows) {
-        if (row.Data.size() > columnIndex && row.Data[columnIndex] == dataToDeleteValue) {
+        if (row.Data.size() > columnIndex && row.Data[columnIndex] == dataToDelete) {
             row.Data[columnIndex] = "";
         }
     }

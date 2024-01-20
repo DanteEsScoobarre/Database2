@@ -1,4 +1,5 @@
 #include "Parser.h"
+
 /*
 Tokenizacja danych, parsowanie po nich.
  https://kishoreganesh.com/post/writing-a-json-parser-in-cplusplus/
@@ -46,7 +47,7 @@ auto Parser::parseExpression(std::vector<std::string> &tokens, size_t &currentIn
     auto expr = std::make_unique<Expression>();
 
     while (currentIndex < tokens.size()) {
-        const auto& token = tokens[currentIndex];
+        const auto &token = tokens[currentIndex];
 
         if (token == "(") {
             ++currentIndex;
@@ -91,6 +92,7 @@ bool Parser::isLogicalOperator(const std::string &token) {
 }
 
 const std::vector<Column> Command::emptyColumns = {};
+
 auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
     std::vector<std::string> tokens = tokenize(commandStr, ' ');
     if (tokens.empty()) {
@@ -116,19 +118,16 @@ auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
         parseInsertCommand(tokens, cmd);
     } else if (cmd.type == "REMOVE") {
         parseDeleteColumnCommand(tokens, cmd);
-    } else if (cmd.type == "SAVE"){
+    } else if (cmd.type == "SAVE") {
         parseSaveCommand(tokens, cmd);
     } else if (cmd.type == "LOAD") {
         parseLoadCommand(tokens, cmd);
-    }
-    else {
+    } else {
         throw std::runtime_error("Unknown command type: " + cmd.type);
     }
 
     return cmd;
 }
-
-
 
 
 auto Parser::parseCreateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
@@ -249,20 +248,8 @@ auto Parser::parseUpdateCommand(const std::vector<std::string> &tokens, Command 
         throw std::runtime_error("Expected new value in UPDATE command");
     }
 
-
-    size_t whereIndex = valueStartIndex + 2;
-    if (whereIndex < tokens.size() && tokens[whereIndex] == "WHERE") {
-
-        std::string whereClause;
-        for (size_t i = whereIndex + 1; i < tokens.size(); ++i) {
-            if (!whereClause.empty()) {
-                whereClause += " ";
-            }
-            whereClause += tokens[i];
-        }
-        cmd.whereClause = whereClause;
-    }
 }
+
 
 auto Parser::parseDeleteColumnCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
     if (tokens.size() != 4 || tokens[2] != "FROM") {
@@ -299,12 +286,13 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
         throw std::runtime_error("Invalid data format: " + data);
     }
 
-   \
+    \
     if (data.front() == '\'' && data.back() == '\'') {
         data = data.substr(1, data.length() - 2);
     } else if (data.front() == '(' && data.back() == ')') {
         data = data.substr(1, data.length() - 2);
-    } else if (std::all_of(data.begin(), data.end(), ::isdigit) || (data.front() == '-' && std::all_of(data.begin() + 1, data.end(), ::isdigit))) {
+    } else if (std::all_of(data.begin(), data.end(), ::isdigit) ||
+               (data.front() == '-' && std::all_of(data.begin() + 1, data.end(), ::isdigit))) {
 
     } else {
         throw std::runtime_error("Unrecognized data format: " + data);
@@ -334,32 +322,18 @@ auto Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &c
     cmd.tableName = *(inPos + 1);
 
 
-    std::string dataToDelete;
+    std::string data;
     for (auto it = tokens.begin() + 1; it != fromPos; ++it) {
-        dataToDelete += (it != tokens.begin() + 1 ? " " : "") + *it;
+        data += (it != tokens.begin() + 1 ? " " : "") + *it;
     }
 
-    if (dataToDelete.front() == '[' && dataToDelete.back() == ']') {
-        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
-        dataToDelete = trim(dataToDelete);
-    } else {
-        throw std::runtime_error("Invalid data format: " + dataToDelete);
-    }
-
-        if (dataToDelete.front() == '\'' && dataToDelete.back() == '\'') {
-        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
-    } else if (dataToDelete.front() == '(' && dataToDelete.back() == ')') {
-        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
-    } else if (std::all_of(dataToDelete.begin(), dataToDelete.end(), ::isdigit) || (dataToDelete.front() == '-' && std::all_of(dataToDelete.begin() + 1, dataToDelete.end(), ::isdigit))) {
-        // Integer data - no additional processing needed
-    } else {
-        throw std::runtime_error("Unrecognized data format: " + dataToDelete);
+    if (data.front() == '[' && data.back() == ']') {
+        data = data.substr(1, data.length() - 2);
     }
 
     cmd.columnName = *(fromPos + 1);
-    cmd.dataToDelete = dataToDelete;
+    cmd.whereClause = data;
 }
-
 
 
 auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr<Expression> {
@@ -373,7 +347,6 @@ auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr
 }
 
 
-
 auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
     if (tokens.size() < 2) {
         throw std::runtime_error("Invalid syntax for SAVE command");
@@ -385,18 +358,18 @@ auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &c
 }
 
 auto Parser::parseLoadCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-        if (tokens.size() < 2) {
-            throw std::runtime_error("Invalid syntax for LOAD command");
-        }
-
-        cmd.type = "LOAD";
-        std::string filePath = joinFilePath(std::vector<std::string>(tokens.begin() + 1, tokens.end()));
-        cmd.value = filePath;
+    if (tokens.size() < 2) {
+        throw std::runtime_error("Invalid syntax for LOAD command");
     }
 
-auto Parser::joinFilePath(const std::vector<std::string>& pathTokens) -> std::string {
+    cmd.type = "LOAD";
+    std::string filePath = joinFilePath(std::vector<std::string>(tokens.begin() + 1, tokens.end()));
+    cmd.value = filePath;
+}
+
+auto Parser::joinFilePath(const std::vector<std::string> &pathTokens) -> std::string {
     std::string filePath;
-    for (const auto& token : pathTokens) {
+    for (const auto &token: pathTokens) {
         if (!filePath.empty()) {
             filePath += "";
         }
