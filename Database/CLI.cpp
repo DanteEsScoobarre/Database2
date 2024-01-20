@@ -4,7 +4,7 @@
 auto CLI::run() -> void {
     std::string input;
     while (true) {
-        std::cout << "> ";
+        std::cout << ">> ";
         std::getline(std::cin, input);
 
         if (input == "quit" || input == "exit") {
@@ -30,29 +30,27 @@ auto CLI::executeCommand(const Command &command) -> void {
         } else if (command.type == "DROP") {
             db.deleteTable(command.tableName);
         } else if (command.type == "ADD") {
-            // Assuming ADD command adds a column to a table
             for (const auto &column: command.columns) {
                 db.addColumn(command.tableName, column);
             }
         } else if (command.type == "INSERT") {
             // Assuming INSERT command inserts a new row
-            db.insertInto(command.tableName, command.columnName,Row(command.data)); // Row construction might differ
+            db.insertInto(command.tableName, command.columnName,Row(command.data));
         } else if (command.type == "UPDATE") {
             if (command.updatedData.Data.empty()) {
                 throw std::runtime_error("No data provided for update");
             }
-            // Use the first value from the updatedData's Data vector for the update
             std::string newValue = command.updatedData.Data[0];
-            db.update(command.tableName, command.columnName, newValue);
+            db.update(command.tableName, command.columnName, Row(command.data), command.whereClause);
         } else if (command.type == "DELETE") {
-            // Assuming DELETE command deletes from a table
-            db.deleteDataFromColumn(command.tableName, command.columnName, command.value);
+
+            db.deleteDataFromColumn(command.tableName, command.columnName, Row(command.data));
         } else if (command.type == "REMOVE") {
             db.removeColumn(command.tableName, command.columnName);
         } else if (command.type == "SELECT") {
             std::vector<std::string> columnNames;
             for (const auto &column: command.columns) {
-                columnNames.push_back(column.name); // Extracting the name from each Column
+                columnNames.push_back(column.name);
             }
 
             auto rows = db.select(command.tableName, columnNames, command.whereClause);
@@ -74,7 +72,7 @@ auto CLI::executeCommand(const Command &command) -> void {
 
 auto CLI::displaySelectedRows(const std::vector<Row> &rows) -> void {
     for (const Row& row : rows) {
-        for (const auto& value : row.Data) {  // Directly access the data in each row
+        for (const auto& value : row.Data) {
             std::cout << value << " ";
         }
         std::cout << std::endl;

@@ -1,9 +1,5 @@
-//
-// Created by rozsh on 17/01/2024.
-//
-
-#ifndef DATABASE2_ROW_H
-#define DATABASE2_ROW_H
+#ifndef ROW_H
+#define ROW_H
 #pragma once
 
 #include "Prerequestion.h"
@@ -20,13 +16,10 @@ struct Row {
 
 
     auto getValue(const std::string &columnName) -> std::string const;
-
-
     auto canUpdate(size_t columnIndex) -> bool;
-
     auto setValue(size_t columnIndex, const Row& inputRow) -> void;
 
 
 };
 
-#endif //DATABASE2_ROW_H
+#endif //ROW_H

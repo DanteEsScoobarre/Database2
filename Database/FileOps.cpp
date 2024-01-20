@@ -1,16 +1,15 @@
-//
-// Created by rozsh on 16/01/2024.
-//
-
 #include "FileOps.h"
-
+/*
+ * Format pseudo-json przy zapisie do pliku
+ * https://kishoreganesh.com/post/writing-a-json-parser-in-cplusplus/
+ */
 auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> void {
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Unable to open file for writing: " + filename);
     }
 
-    file << "{\n"; // Start of the database JSON object
+    file << "{\n";
     for (const auto &table : db.getTables()) {
         file << "  \"TABLE\": \"" << table.name << "\",\n";
         file << "  \"COLUMNS\": [\n";
@@ -42,7 +41,7 @@ auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> v
             file << "},\n";
         }
     }
-    file << "}\n"; // End of the database JSON object
+    file << "}\n";
     file.close();
 }
 
@@ -69,7 +68,6 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
 
         if (line.starts_with("\"TABLE\":")) {
             std::string tableName = extractValue(line, "\"TABLE\":");
-            std::cout << "Found a table start: " << tableName << std::endl;
             if (!tableName.empty()) {
                 currentTable.name = tableName;
                 currentTable.columns.clear();
@@ -78,7 +76,6 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
             }
         }
         else if (inTable && line.starts_with("\"COLUMNS\":")) {
-            std::cout << "Processing COLUMNS" << std::endl;
             while (getline(file, line) && !line.starts_with("  ],")) {
                 line = trim(line);
                 std::cout << "Column line: " << line << std::endl;
@@ -100,25 +97,23 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
             }
         }
         else if (inTable && line.starts_with("\"ROWS\":")) {
-            std::cout << "Processing ROWS" << std::endl;
-            std::vector<Row> tempRows; // Temporary rows for accumulation
+            std::vector<Row> tempRows;
 
-            int currentRowIndex = 0; // Index to track which row is being populated
+            int currentRowIndex = 0;
             while (getline(file, line)) {
                 line = trim(line);
                 if (line.starts_with("{")) {
                     std::istringstream iss(line);
                     std::string token;
-                    getline(iss, token, ':'); // Extract column name
+                    getline(iss, token, ':');
                     token = trim(token);
                     size_t nameStart = token.find('\"') + 1;
                     size_t nameEnd = token.find('\"', nameStart);
                     std::string columnName = token.substr(nameStart, nameEnd - nameStart);
 
-                    getline(iss, token, '}'); // Extract column value
+                    getline(iss, token, '}');
                     std::string value = trim(extractValue(token, "\"\":"));
 
-                    // Find the corresponding column index
                     auto it = std::ranges::find_if(currentTable.columns.begin(), currentTable.columns.end(),
                                            [&](const Column& col) { return col.name == columnName; });
                     if (it != currentTable.columns.end()) {
@@ -128,18 +123,18 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
                         }
                     }
                 } else if (line == "],") {
-                    // Break out of the loop once the end of rows is reached
+
                     break;
                 } else if (line == "},") {
-                    currentRowIndex++; // Move to the next row
+                    currentRowIndex++;
                 }
             }
 
-            // Add the accumulated rows to the currentTable
+
             for (auto& row : tempRows) {
                 if (!row.Data.empty()) {
                     currentTable.rows.push_back(row);
-                    std::cout << "Added row" << std::endl; // Debug output for each added row
+                    std::cout << "Added row" << std::endl;
                 }
             }
         }

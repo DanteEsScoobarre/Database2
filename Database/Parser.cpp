@@ -1,7 +1,9 @@
 #include "Parser.h"
+/*
+Tokenizacja danych, parsowanie po nich.
+ https://kishoreganesh.com/post/writing-a-json-parser-in-cplusplus/
 
-
-
+*/
 auto Parser::tokenize(const std::string &str, char delimiter) -> std::vector<std::string> {
     std::vector<std::string> tokens;
     std::string currentToken;
@@ -13,12 +15,12 @@ auto Parser::tokenize(const std::string &str, char delimiter) -> std::vector<std
                 currentToken.clear();
             }
         } else if (std::ispunct(ch)) {
-            // Add the current token if it's not empty
+
             if (!currentToken.empty()) {
                 tokens.push_back(currentToken);
                 currentToken.clear();
             }
-            // Add the punctuation (operator/parentheses) as a separate token
+
             tokens.push_back(std::string(1, ch));
         } else {
             currentToken += ch;
@@ -37,55 +39,57 @@ auto Parser::isComparisonOperator(const std::string &token) -> bool {
 }
 
 auto Parser::parseExpression(std::vector<std::string> &tokens, size_t &currentIndex) -> std::unique_ptr<Expression> {
+    if (currentIndex >= tokens.size()) {
+        throw std::runtime_error("Expression parsing reached unexpected end of tokens");
+    }
+
     auto expr = std::make_unique<Expression>();
 
     while (currentIndex < tokens.size()) {
-        const auto &token = tokens[currentIndex];
+        const auto& token = tokens[currentIndex];
 
         if (token == "(") {
-            ++currentIndex; // Skip the opening parenthesis
-            expr = parseExpression(tokens, currentIndex); // Correctly assign the unique_ptr
+            ++currentIndex;
+            expr = parseExpression(tokens, currentIndex);
             if (currentIndex >= tokens.size() || tokens[currentIndex] != ")") {
                 throw std::runtime_error("Mismatched parentheses in expression");
             }
-            ++currentIndex; // Skip the closing parenthesis
-        } else if (token == "AND" || token == "OR") {
-            // Handle logical operators
-            auto newExpr = std::make_unique<Expression>();
-            newExpr->logicalOperator = token;
-            newExpr->left = std::move(expr); // Move the current expression to left
-            ++currentIndex; // Move to the next part of the expression
-            newExpr->right = parseExpression(tokens, currentIndex); // Assign unique_ptr directly
-            expr = std::move(newExpr);
+            ++currentIndex;
         } else if (isComparisonOperator(token)) {
-            // Handle comparison operators
-            if (expr->column.empty() || !expr->value.empty()) {
-                throw std::runtime_error("Invalid expression format");
-            }
+
             expr->operators = token;
-            ++currentIndex; // Move to the next token, which should be the value
+            ++currentIndex;
             if (currentIndex < tokens.size()) {
                 expr->value = tokens[currentIndex];
                 ++currentIndex;
             } else {
                 throw std::runtime_error("Expected value after operator");
             }
-        } else {
-            // This should be a column name
-            if (!expr->column.empty()) {
-                throw std::runtime_error("Unexpected token: " + token);
+        } else if (isLogicalOperator(token)) {
+            auto newExpr = std::make_unique<Expression>();
+            newExpr->logicalOperator = token;
+            newExpr->left = std::move(expr);
+            ++currentIndex;
+            newExpr->right = parseExpression(tokens, currentIndex);
+            expr = std::move(newExpr);
+            if (currentIndex < tokens.size() && isComparisonOperator(tokens[currentIndex])) {
+                continue;
             }
+            break;
+        } else {
+
             expr->column = token;
             ++currentIndex;
-        }
-
-        if (token == "AND" || token == "OR") {
-            break;
         }
     }
 
     return expr;
 }
+
+bool Parser::isLogicalOperator(const std::string &token) {
+    return token == "AND" || token == "OR";
+}
+
 const std::vector<Column> Command::emptyColumns = {};
 auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
     std::vector<std::string> tokens = tokenize(commandStr, ' ');
@@ -135,7 +139,7 @@ auto Parser::parseCreateCommand(const std::vector<std::string> &tokens, Command 
     cmd.type = "CREATE";
     cmd.tableName = tokens[1];
 
-    size_t i = 3; // Start from the token after "WITH"
+    size_t i = 3;
     while (i + 4 < tokens.size()) {
         if (tokens[i] != "{" || tokens[i + 4] != "}") {
             throw std::runtime_error("Malformed column definition at position " + std::to_string(i));
@@ -146,11 +150,11 @@ auto Parser::parseCreateCommand(const std::vector<std::string> &tokens, Command 
         }
 
         Column column;
-        column.name = tokens[i + 1]; // Column name
-        column.type = tokens[i + 3]; // Column data type
+        column.name = tokens[i + 1];
+        column.type = tokens[i + 3];
 
         cmd.columns.push_back(column);
-        i += (i + 6 < tokens.size() && tokens[i + 6] == "{") ? 6 : 5; // Move to the next column definition
+        i += (i + 6 < tokens.size() && tokens[i + 6] == "{") ? 6 : 5;
     }
 }
 
@@ -183,7 +187,7 @@ auto Parser::parseAddCommand(const std::vector<std::string> &tokens, Command &cm
 
     Column column = {columnName, columnType};
     cmd.columns.push_back(column);
-    cmd.tableName = *(endBracketPos + 2); // Table name is after "INTO"
+    cmd.tableName = *(endBracketPos + 2);
 }
 
 auto Parser::parseSelectCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
@@ -192,11 +196,11 @@ auto Parser::parseSelectCommand(const std::vector<std::string> &tokens, Command 
     }
 
     cmd.type = "SELECT";
-    size_t i = 1; // Start from the token after "SELECT"
+    size_t i = 1;
 
-    // Parse column names until "FROM"
+
     while (tokens[i] != "FROM") {
-        cmd.columns.push_back({tokens[i], ""}); // Only name is needed, type is not relevant for SELECT
+        cmd.columns.push_back({tokens[i], ""});
         i++;
         if (i >= tokens.size()) {
             throw std::runtime_error("Missing 'FROM' keyword in SELECT command");
@@ -206,37 +210,57 @@ auto Parser::parseSelectCommand(const std::vector<std::string> &tokens, Command 
 
     cmd.tableName = tokens[++i];
 
-    // Check for WHERE clause
     if (i + 1 < tokens.size() && tokens[i + 1] == "WHERE") {
+        std::string whereClause;
         for (i += 2; i < tokens.size(); ++i) {
-            if (!cmd.whereClause.empty()) {
-                cmd.whereClause += " ";
+            if (!whereClause.empty()) {
+                whereClause += " ";
             }
-            cmd.whereClause += tokens[i];
+            whereClause += tokens[i];
         }
+
+        cmd.whereExpression = parseWhereClause(whereClause);
     }
 }
 
-
 auto Parser::parseUpdateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
-    if (tokens.size() < 6 || tokens[2] != "FROM" || tokens[4] != "WITH" || tokens[5] != "[") {
+    if (tokens.size() < 6 || tokens[2] != "FROM" || tokens[4] != "WITH") {
         throw std::runtime_error("Invalid syntax for UPDATE command");
     }
 
     cmd.type = "UPDATE";
-    cmd.columnName = tokens[1]; // Column name to be updated
-    cmd.tableName = tokens[3]; // Table name
+    cmd.columnName = tokens[1];
+    cmd.tableName = tokens[3];
 
-    // Extracting the updated data
-    size_t i = 6; // Start from the token after '['
-    if (i < tokens.size() && tokens[i] != "]") {
-        std::string updatedValue = tokens[i]; // Extract the new value
 
-        // Initialize a Row object with an empty columns vector for now
+    size_t valueStartIndex = 5;
+    if (tokens[valueStartIndex] != "[") {
+        throw std::runtime_error("Expected '[' in UPDATE command");
+    }
+
+
+    if (valueStartIndex + 1 < tokens.size() && tokens[valueStartIndex + 1] != "]") {
+        std::string updatedValue = tokens[valueStartIndex + 1];
+
+
         cmd.updatedData = Row(std::vector<Column>());
-        cmd.updatedData.Data.push_back(updatedValue); // Add the new value to the Row's Data vector
+        cmd.updatedData.Data.push_back(updatedValue);
     } else {
         throw std::runtime_error("Expected new value in UPDATE command");
+    }
+
+
+    size_t whereIndex = valueStartIndex + 2;
+    if (whereIndex < tokens.size() && tokens[whereIndex] == "WHERE") {
+
+        std::string whereClause;
+        for (size_t i = whereIndex + 1; i < tokens.size(); ++i) {
+            if (!whereClause.empty()) {
+                whereClause += " ";
+            }
+            whereClause += tokens[i];
+        }
+        cmd.whereClause = whereClause;
     }
 }
 
@@ -246,8 +270,8 @@ auto Parser::parseDeleteColumnCommand(const std::vector<std::string> &tokens, Co
     }
 
     cmd.type = "REMOVE";
-    cmd.columnName = tokens[1]; // The column name to be removed
-    cmd.tableName = tokens[3]; // The table name
+    cmd.columnName = tokens[1];
+    cmd.tableName = tokens[3];
 }
 
 
@@ -258,26 +282,47 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
     }
 
     cmd.type = "INSERT";
-    cmd.columnName = *(intoPos + 1); // The column name
-    cmd.tableName = *(intoPos + 3); // The table name
+    cmd.columnName = *(intoPos + 1);
+    cmd.tableName = *(intoPos + 3);
 
-    // Reconstruct the data string from tokens[1] to the token before "INTO"
+
     std::string data;
     for (auto it = tokens.begin() + 1; it != intoPos; ++it) {
         data += (it != tokens.begin() + 1 ? " " : "") + *it;
     }
-    // Remove the surrounding brackets from the data
+
+
     if (data.front() == '[' && data.back() == ']') {
         data = data.substr(1, data.length() - 2);
+        data = trim(data);
+    } else {
+        throw std::runtime_error("Invalid data format: " + data);
     }
 
-    // Initialize an empty Row object and add the data
+   \
+    if (data.front() == '\'' && data.back() == '\'') {
+        data = data.substr(1, data.length() - 2);
+    } else if (data.front() == '(' && data.back() == ')') {
+        data = data.substr(1, data.length() - 2);
+    } else if (std::all_of(data.begin(), data.end(), ::isdigit) || (data.front() == '-' && std::all_of(data.begin() + 1, data.end(), ::isdigit))) {
+
+    } else {
+        throw std::runtime_error("Unrecognized data format: " + data);
+    }
+
     cmd.data = Row(std::vector<Column>());
     cmd.data.Data.push_back(data);
 }
 
+std::string Parser::trim(const std::string &str) {
+    size_t first = str.find_first_not_of(' ');
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
 
-auto Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd)  -> void{
+auto Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) -> void {
     auto fromPos = std::find(tokens.begin(), tokens.end(), "FROM");
     auto inPos = std::find(tokens.begin(), tokens.end(), "IN");
 
@@ -286,28 +331,40 @@ auto Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &c
     }
 
     cmd.type = "DELETE";
-    cmd.tableName = *(inPos + 1); // Table name is the token after "IN"
+    cmd.tableName = *(inPos + 1);
 
-    // Reconstruct the data string from tokens[1] to the token before "FROM"
-    std::string data;
+
+    std::string dataToDelete;
     for (auto it = tokens.begin() + 1; it != fromPos; ++it) {
-        data += (it != tokens.begin() + 1 ? " " : "") + *it;
-    }
-    // Remove the surrounding brackets from the data
-    if (data.front() == '[' && data.back() == ']') {
-        data = data.substr(1, data.length() - 2);
+        dataToDelete += (it != tokens.begin() + 1 ? " " : "") + *it;
     }
 
-    cmd.columnName = *(fromPos + 1); // Column name is the token after "FROM"
-    cmd.whereClause = data; // Use the reconstructed data as the whereClause
+    if (dataToDelete.front() == '[' && dataToDelete.back() == ']') {
+        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
+        dataToDelete = trim(dataToDelete);
+    } else {
+        throw std::runtime_error("Invalid data format: " + dataToDelete);
+    }
+
+        if (dataToDelete.front() == '\'' && dataToDelete.back() == '\'') {
+        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
+    } else if (dataToDelete.front() == '(' && dataToDelete.back() == ')') {
+        dataToDelete = dataToDelete.substr(1, dataToDelete.length() - 2);
+    } else if (std::all_of(dataToDelete.begin(), dataToDelete.end(), ::isdigit) || (dataToDelete.front() == '-' && std::all_of(dataToDelete.begin() + 1, dataToDelete.end(), ::isdigit))) {
+        // Integer data - no additional processing needed
+    } else {
+        throw std::runtime_error("Unrecognized data format: " + dataToDelete);
+    }
+
+    cmd.columnName = *(fromPos + 1);
+    cmd.dataToDelete = dataToDelete;
 }
-
 
 
 
 auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr<Expression> {
     if (whereClause.empty()) {
-        return nullptr; // No condition provided
+        return nullptr;
     }
 
     std::vector<std::string> tokens = tokenize(whereClause, ' ');
@@ -315,65 +372,7 @@ auto Parser::parseWhereClause(const std::string &whereClause) -> std::unique_ptr
     return parseExpression(tokens, currentIndex);
 }
 
-auto
-Parser::extractAndValidateData(const std::string &dataStr, const std::string &dataType) -> std::vector<std::string> {
-    std::vector<std::string> dataTokens = tokenize(dataStr, ',');
-    std::vector<std::string> validatedData;
-    std::vector<std::string> invalidData;
 
-    for (const auto& token : dataTokens) {
-        if (validateDataType(token, dataType)) {
-            validatedData.push_back(token);
-        } else {
-            invalidData.push_back(token);
-        }
-    }
-
-    if (!invalidData.empty()) {
-        std::string errorMessage = "Invalid data detected: ";
-        for (const auto& invalid : invalidData) {
-            errorMessage += invalid + " ";
-        }
-        throw std::runtime_error(errorMessage);
-    }
-
-    return validatedData;
-}
-
-auto Parser::joinValidatedData(const std::vector<std::string>& data) -> std::string {
-    std::string result;
-    for (const auto& item : data) {
-        if (!result.empty()) {
-            result += ", ";
-        }
-        result += item;
-    }
-    return result;
-}
-
-auto Parser::validateDataType(const std::string &value, const std::string &type) -> bool {
-    if (type == "int") {
-        return isInteger(value);
-    } else if (type == "bool") {
-        return isBoolean(value);
-    } else if (type == "string") {
-        return !value.empty() && value.front() == '\'' && value.back() == '\'';
-    } else {
-    }
-    return false;
-}
-auto Parser::isBoolean(const std::string &value) -> bool {
-    return value == "(true)" || value == "(false)" || value == "(null)";
-}
-
-auto Parser::isInteger(const std::string &value) -> bool {
-    if (value.empty() || ((!isdigit(value[0])) && (value[0] != '-') && (value[0] != '+'))) return false;
-
-    char * p;
-    strtol(value.c_str(), &p, 10);
-
-    return (*p == 0);
-}
 
 auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
     if (tokens.size() < 2) {
@@ -382,7 +381,7 @@ auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &c
 
     cmd.type = "SAVE";
     std::vector<std::string> filePathTokens(tokens.begin() + 1, tokens.end());
-    cmd.value = joinFilePath(filePathTokens); // 'value' field will store the file path
+    cmd.value = joinFilePath(filePathTokens);
 }
 
 auto Parser::parseLoadCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
@@ -391,7 +390,6 @@ auto Parser::parseLoadCommand(const std::vector<std::string> &tokens, Command &c
         }
 
         cmd.type = "LOAD";
-        // Since the file path might contain spaces, we join all the tokens back into a single string
         std::string filePath = joinFilePath(std::vector<std::string>(tokens.begin() + 1, tokens.end()));
         cmd.value = filePath;
     }
@@ -409,9 +407,8 @@ auto Parser::joinFilePath(const std::vector<std::string>& pathTokens) -> std::st
 
 
 
-bool Parser::isString(const std::string &value) {
-    return !value.empty() && value.front() == '\'' && value.back() == '\'';
-}
+
+
 
 
 

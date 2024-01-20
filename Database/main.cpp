@@ -2,11 +2,14 @@
 #include "CLI.h"
 
 /*
+ *
+ * Dla lepszych wrażeń związanych z korzystaniem z bazy danych polecam włączyć ją w innym oknie niż konsola IDE.
+ *
+ *
  Dane przechowywane są w kolumnach i rzędach, które zawierają nazwę kolumny oraz typ danych jakie przechowują. Następnie kolumny
  tworzą rzędy będące vectorem kolumn. Dopóki użytkownik nie wprowadzi komendy SAVE wszystkie dane są przechowywane w polach
- klas.
- SaveToFile - WIP
- SELECT - WIP
+ klas. Dodatkowo, wszystkie komendy są parsowane w parserzem który następnie wysyła odpowiednie tokeny do funckji która się wykonuje.
+ Niestety, z jakiegoś
 
  Klasa Database zawiera wszystkie metody, niezbędne do tworzenia tabel, dodawania do nich kolumn, usuwania kolumn,
  wprowadzania danych do tabeli, usuwania danych z tabeli, wyświetlania danych z tabel oraz modyfikacją danych w tabeli.
@@ -33,13 +36,15 @@
  ADD {column_name, data_type} INTO table_name
 
  Dla INSERT - wprowadzanie danych do tabeli
- INSERT [data] INTO column_name IN table_name
+ INSERT [int] INTO column_name IN table_name
+ INSERT ['string'] INTO column_name IN table_name
+ INSERT [(boolean)] INTO column_name IN table_name (nie działa, nie wiem dlaczego)
 
  Dla SELECT
- SELECT column_name FROM table_name WHERE condition
+ SELECT column_name FROM table_name WHERE condition (ignoruje WHERE, nie wiem dlaczego)
 
  Dla UPDATE - zmiany danych w tabeli
- UPDATE column_name IN table_name WITH [updated_value]
+ UPDATE column_name FROM table_name WITH [updated_value] WHERE condition (ignoruje WHERE, nie wiem dlaczego)
 
  Dla DELETE - usuwanie danych z tabeli
  DELETE [data] FROM column_name IN table_name
@@ -56,8 +61,7 @@
  Dla LOAD - wczytywanie danych z pliku
  LOAD absolute_path_to_file
 
-
-
+//Mimo, że nie korzystam z SFML w aplikacji, ale jak go nie ma to się aplikacja nie kompiluje, prawdopobnie jest to związane z CLionem i plikami w debugCmakee, ale zostawiamn na wszelki wypadek.
 
 */
 int main() {

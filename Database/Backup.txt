@@ -1,14 +1,15 @@
 {
-  "TABLE": "a",
+  "TABLE": "employees",
   "COLUMNS": [
-    {"name": "aaa", "type": "string"},
-    {"name": "data", "type": "string"},
-    {"name": "kupa", "type": "string"}
+    {"name": "id", "type": "int"},
+    {"name": "name", "type": "string"},
+    {"name": "salary", "type": "int"},
+    {"name": "employed", "type": "bool"}
   ],
   "ROWS": [
-{"aaa": " bbb "},
-{"data": " lsalsa "}, 
-{"kupa": " slonia "}
+    {"id": "1", "name": " Alice ", "salary": "70000", "employed": ""},
+    {"id": "2", "name": " Bob ", "salary": "80000", "employed": ""},
+    {"id": "3", "name": " Charlie ", "salary": "90000", "employed": ""}
   ]
 },
 }
