@@ -38,13 +38,13 @@
  Dla INSERT - wprowadzanie danych do tabeli
  INSERT [int] INTO column_name IN table_name
  INSERT ['string'] INTO column_name IN table_name
- INSERT [(boolean)] INTO column_name IN table_name (nie działa, nie wiem dlaczego)
+ INSERT [(boolean)] INTO column_name IN table_name
 
  Dla SELECT
- SELECT column_name FROM table_name WHERE condition (ignoruje WHERE, nie wiem dlaczego)
+ SELECT column_name FROM table_name WHERE condition
 
  Dla UPDATE - zmiany danych w tabeli
- UPDATE column_name FROM table_name WITH [updated_value] WHERE condition (ignoruje WHERE, nie wiem dlaczego)
+ UPDATE column_name FROM table_name WITH [updated_value]
 
  Dla DELETE - usuwanie danych z tabeli
  DELETE [data] FROM column_name IN table_name
@@ -61,7 +61,7 @@
  Dla LOAD - wczytywanie danych z pliku
  LOAD absolute_path_to_file
 
-//Mimo, że nie korzystam z SFML w aplikacji, ale jak go nie ma to się aplikacja nie kompiluje, prawdopobnie jest to związane z CLionem i plikami w debugCmakee, ale zostawiamn na wszelki wypadek.
+Mimo, że nie korzystam z SFML w aplikacji, ale jak go nie ma to się aplikacja nie kompiluje, prawdopobnie jest to związane z CLionem i plikami w debugCmakee, ale zostawiamn na wszelki wypadek.
 
 */
 int main() {
