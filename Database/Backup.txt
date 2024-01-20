@@ -1,2 +1,14 @@
 {
+  "TABLE": "a",
+  "COLUMNS": [
+    {"name": "aaa", "type": "string"},
+    {"name": "data", "type": "string"},
+    {"name": "kupa", "type": "string"}
+  ],
+  "ROWS": [
+{"aaa": " bbb "},
+{"data": " lsalsa "}, 
+{"kupa": " slonia "}
+  ]
+},
 }

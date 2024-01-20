@@ -46,6 +46,12 @@ auto FileOps::saveDatabase(const Database &db, const std::string &filename) -> v
     file.close();
 }
 
+auto FileOps::trim(const std::string &str) -> std::string {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return (first == std::string::npos || last == std::string::npos) ? "" : str.substr(first, (last - first + 1));
+}
+
 
 auto FileOps::loadDatabase(const std::string &filename) -> Database {
     std::ifstream file(filename);
@@ -59,56 +65,86 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
     bool inTable = false;
 
     while (getline(file, line)) {
-        std::istringstream iss(line);
-        std::string key;
-        iss >> key;
+        line = trim(line);
 
-        if (key == "\"TABLE\":") {
-            // Start a new table
-            inTable = true;
-            std::string tableName;
-            getline(iss, tableName, ',');
-            tableName = tableName.substr(2, tableName.length() - 3); // Remove quotes and trailing comma
-            currentTable.name = tableName;
-            currentTable.columns.clear();
-            currentTable.rows.clear();
-        } else if (key == "\"COLUMNS\":") {
-            // Process columns
-            while (getline(file, line) && line.find("]") == std::string::npos) {
-                Column column;
-                std::string colName, colType;
-                std::istringstream colStream(line);
-                colStream >> key; // This should be "{" or "}"
-                if (key == "{") {
-                    colStream >> key; // "name":
-                    getline(colStream, colName, ',');
-                    colName = colName.substr(2, colName.length() - 3); // Remove quotes and leading "name": "
-                    colStream >> key; // "type":
-                    getline(colStream, colType, '}');
-                    colType = colType.substr(2, colType.length() - 4); // Remove quotes and leading "type": "
-                    column.name = colName;
-                    column.type = colType;
-                    currentTable.columns.push_back(column);
-                }
+        if (line.starts_with("\"TABLE\":")) {
+            std::string tableName = extractValue(line, "\"TABLE\":");
+            std::cout << "Found a table start: " << tableName << std::endl;
+            if (!tableName.empty()) {
+                currentTable.name = tableName;
+                currentTable.columns.clear();
+                currentTable.rows.clear();
+                inTable = true;
             }
-        } else if (key == "\"ROWS\":") {
-            // Process rows
-            while (getline(file, line) && line.find("]") == std::string::npos) {
-                if (line.find("{") != std::string::npos) {
-                    Row row(currentTable.columns);
-                    std::string value;
-                    for (auto& column : currentTable.columns) {
-                        getline(file, line, ':');
-                        getline(file, value, ',');
-                        value = value.substr(2, value.length() - 3); // Remove quotes and trailing comma
-                        row.Data.push_back(value);
+        }
+        else if (inTable && line.starts_with("\"COLUMNS\":")) {
+            std::cout << "Processing COLUMNS" << std::endl;
+            while (getline(file, line) && !line.starts_with("  ],")) {
+                line = trim(line);
+                std::cout << "Column line: " << line << std::endl;
+
+                if (line.starts_with("{")) {
+                    std::string columnName = extractValue(line, "\"name\":");
+                    std::string columnType = extractValue(line, "\"type\":");
+
+                    if (!columnName.empty() && !columnType.empty()) {
+                        Column column;
+                        column.name = columnName;
+                        column.type = columnType;
+                        currentTable.columns.push_back(column);
+                        std::cout << "Added column: " << columnName << " of type " << columnType << std::endl;
+                    } else {
+                        std::cerr << "Failed to parse column from line: " << line << std::endl;
                     }
-                    getline(file, line); // Finish the current row line
-                    currentTable.rows.push_back(row);
                 }
             }
-        } else if (key == "},") {
-            // End of a table
+        }
+        else if (inTable && line.starts_with("\"ROWS\":")) {
+            std::cout << "Processing ROWS" << std::endl;
+            std::vector<Row> tempRows; // Temporary rows for accumulation
+
+            int currentRowIndex = 0; // Index to track which row is being populated
+            while (getline(file, line)) {
+                line = trim(line);
+                if (line.starts_with("{")) {
+                    std::istringstream iss(line);
+                    std::string token;
+                    getline(iss, token, ':'); // Extract column name
+                    token = trim(token);
+                    size_t nameStart = token.find('\"') + 1;
+                    size_t nameEnd = token.find('\"', nameStart);
+                    std::string columnName = token.substr(nameStart, nameEnd - nameStart);
+
+                    getline(iss, token, '}'); // Extract column value
+                    std::string value = trim(extractValue(token, "\"\":"));
+
+                    // Find the corresponding column index
+                    auto it = std::ranges::find_if(currentTable.columns.begin(), currentTable.columns.end(),
+                                           [&](const Column& col) { return col.name == columnName; });
+                    if (it != currentTable.columns.end()) {
+                        int colIndex = std::distance(currentTable.columns.begin(), it);
+                        if (currentRowIndex < tempRows.size()) {
+                            tempRows[currentRowIndex].Data[colIndex] = value;
+                        }
+                    }
+                } else if (line == "],") {
+                    // Break out of the loop once the end of rows is reached
+                    break;
+                } else if (line == "},") {
+                    currentRowIndex++; // Move to the next row
+                }
+            }
+
+            // Add the accumulated rows to the currentTable
+            for (auto& row : tempRows) {
+                if (!row.Data.empty()) {
+                    currentTable.rows.push_back(row);
+                    std::cout << "Added row" << std::endl; // Debug output for each added row
+                }
+            }
+        }
+
+        else if (inTable && line == "},") {
             db.addTable(currentTable);
             inTable = false;
         }
@@ -118,3 +154,18 @@ auto FileOps::loadDatabase(const std::string &filename) -> Database {
     return db;
 }
 
+
+auto FileOps::extractValue(const std::string &line, const std::string &key) -> std::string {
+    size_t keyPos = line.find(key);
+    if (keyPos == std::string::npos) {
+        return "";
+    }
+
+    size_t start = line.find('\"', keyPos + key.length()) + 1;
+    size_t end = line.find('\"', start);
+    if (start == std::string::npos || end == std::string::npos || start >= end) {
+        return "";
+    }
+
+    return line.substr(start, end - start);
+}

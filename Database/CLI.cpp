@@ -23,6 +23,7 @@ auto CLI::run() -> void {
 
 
 auto CLI::executeCommand(const Command &command) -> void {
+    FileOps fileops;
     try {
         if (command.type == "CREATE") {
             db.createTable(command.tableName, command.columns);
@@ -57,10 +58,10 @@ auto CLI::executeCommand(const Command &command) -> void {
             auto rows = db.select(command.tableName, columnNames, command.whereClause);
             displaySelectedRows(rows);
         } else if (command.type == "SAVE") {
-            FileOps::saveDatabase(db, command.value);
+            fileops.saveDatabase(db, command.value);
         }
         else if (command.type == "LOAD") {
-            FileOps::loadDatabase(command.value);
+            fileops.loadDatabase(command.value);
         }
         else {
             throw std::runtime_error("Invalid command");

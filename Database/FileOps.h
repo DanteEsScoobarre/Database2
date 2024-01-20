@@ -6,9 +6,13 @@
 
 class FileOps {
 public:
-    static auto saveDatabase(const Database &db, const std::string &filename) -> void;
+    auto saveDatabase(const Database &db, const std::string &filename) -> void;
 
-    static auto loadDatabase(const std::string &filename) -> Database;
+    auto loadDatabase(const std::string &filename) -> Database;
+
+    auto  trim(const std::string &str) -> std::string;
+
+    auto extractValue(const std::string &line, const std::string &key) -> std::string;
 };
 
 #endif // FILEOPS_H
