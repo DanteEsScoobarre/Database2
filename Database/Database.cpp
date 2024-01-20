@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Row.h"
 
 
 auto findTable(std::vector<Table> &tables, const std::string &tableName) {
@@ -60,26 +61,56 @@ auto Database::removeColumn(const std::string &tableName, const std::string &col
 
 
 
-auto Database::insertInto(const std::string &tableName, const Row &row) -> void {
-    Parser parser;
+auto Database::insertInto(const std::string &tableName, const std::string &columnName, const Row &inputRow) -> void {
     auto tableIt = findTable(tables, tableName);
     if (tableIt == tables.end()) {
-        throw std::runtime_error("Table not found.");
+        throw std::runtime_error("Table not found: " + tableName);
     }
 
-    if (row.Data.size() != tableIt->columns.size()) {
-        throw std::runtime_error("Row data does not match table columns.");
-    }
-
-    // Validate data types for each column
-    for (std::size_t i = 0; i < row.Data.size(); ++i) {
-        if (!parser.validateDataType(row.Data[i], tableIt->columns[i].type)) {
-            throw std::runtime_error("Data type mismatch for column: " + tableIt->columns[i].name);
+    // Find the index of the column in the table
+    size_t columnIndex = 0;
+    bool columnFound = false;
+    for (; columnIndex < tableIt->columns.size(); ++columnIndex) {
+        if (tableIt->columns[columnIndex].name == columnName) {
+            columnFound = true;
+            break;
         }
     }
 
-    tableIt->rows.push_back(row);
+    if (!columnFound) {
+        throw std::runtime_error("Column not found: " + columnName);
+    }
+
+    // Ensure the inputRow has only one value for the specific column
+    if (inputRow.Data.size() != 1) {
+        throw std::runtime_error("Input row should have exactly one value for the specified column");
+    }
+
+    // Parser for data type validation
+    Parser parser;
+    if (!parser.validateDataType(inputRow.Data[0], tableIt->columns[columnIndex].type)) {
+        throw std::runtime_error("Data type mismatch for column: " + columnName);
+    }
+
+    // Find a row that doesn't have data in the target column or create a new row
+    bool rowUpdated = false;
+    for (auto& row : tableIt->rows) {
+        if (row.canUpdate(columnIndex)) {
+            row.setValue(columnIndex, inputRow);
+            rowUpdated = true;
+            break; // Data updated, exit loop
+        }
+    }
+
+    if (!rowUpdated) {
+        // Create a new row and set the value
+        Row newRow(tableIt->columns);
+        newRow.setValue(columnIndex, inputRow);
+        tableIt->rows.push_back(newRow);
+        std::cout << "Data inserted into table: " << tableName << std::endl;
+    }
 }
+
 
 auto
 Database::update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void {
@@ -135,20 +166,21 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
         throw std::runtime_error("Table not found.");
     }
 
+    std::cout << "Selecting from table: " << tableName << std::endl; // Debug print
+
     std::vector<Row> result;
     Parser parser;
 
-    // Parse the whereClause into an Expression object
     std::unique_ptr<Expression> whereExpression;
     if (!whereClause.empty()) {
         whereExpression = parser.parseWhereClause(whereClause);
     }
 
-    for (Row &row: tableIt->rows) {
-        // Check the condition only if whereExpression is not null
+    for (Row &row : tableIt->rows) {
         if (whereClause.empty() || (whereExpression && evaluateExpression(row, whereExpression))) {
-            Row selectedRow(tableIt->columns); // Use the correct constructor
-            for (const auto &colName: columns) {
+            Row selectedRow(tableIt->columns);
+            for (const auto &colName : columns) {
+                std::cout << "Accessing column: " << colName << std::endl; // Debug print
                 selectedRow.Data.push_back(row.getValue(colName));
             }
             result.push_back(selectedRow);
@@ -156,6 +188,7 @@ auto Database::select(const std::string &tableName, const std::vector<std::strin
     }
     return result;
 }
+
 
 
 auto Database::getTables() const -> const std::vector<Table> {
@@ -233,16 +266,59 @@ auto Database::evaluateExpression(Row &row, const std::unique_ptr<Expression> &e
 
 auto Row::getValue(const std::string &columnName) -> std::string const {
     if (columns == nullptr) {
-        throw std::runtime_error("Columns pointer is null");
+        throw std::runtime_error("Error: Columns pointer is null in Row::getValue");
     }
 
     for (size_t i = 0; i < columns->size(); ++i) {
-        if ((*columns)[i].name == columnName && i < Data.size()) {
-            return Data[i];
+        if ((*columns)[i].name == columnName) {
+            if (i < Data.size() + 1 ) {
+                std::cout << "rozmiar" << Data.size() << std::endl;
+                std::cout << "index = " << i <<std::endl;
+                return Data[i];
+
+            } else {
+                return "Data not faund";
+            }
         }
     }
+    throw std::runtime_error("Error: Column name '" + columnName + "' not found in Row::getValue");
+}
+auto Row::setColumns(const std::vector<Column> &cols) -> void {
+    columns = &cols;
+}
 
-    throw std::runtime_error("Column name not found");
+
+
+const std::vector<Column>& Database::getTableColumns(const std::string& tableName) {
+    auto tableIt = findTable(tables, tableName);
+    if (tableIt == tables.end()) {
+        throw std::runtime_error("Table not found: " + tableName);
+    }
+    return tableIt->columns;
+}
+auto Row::isColumnSet(size_t index)  -> bool {
+    return index < columnsSet.size() && columnsSet[index];
+}
+
+auto Row::canUpdate(size_t columnIndex) -> bool {
+    return columnIndex < Data.size() && Data[columnIndex].empty();
+}
+
+auto Row::setValue(size_t columnIndex, const Row& inputRow) -> void {
+    // Check if columnIndex is within the range of columns
+    if (columnIndex >= columns->size()) {
+        throw std::runtime_error("Column index out of range");
+    }
+
+    // Ensure Data vector can accommodate the columnIndex
+    if (Data.size() <= columnIndex) {
+        Data.resize(columns->size(), ""); // Initialize with empty strings
+    }
+
+    // Set the value for the specified column
+    if (!inputRow.Data.empty()) {
+        Data[columnIndex] = inputRow.Data[0]; // Assuming the first element of inputRow.Data holds the value for this column
+    }
 }
 
 

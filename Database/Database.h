@@ -24,7 +24,7 @@ public:
     auto removeColumn(const std::string &tableName, const std::string &columnName) -> void;
 
     // DML Operations
-    auto insertInto(const std::string &tableName, const Row &row) -> void;
+    auto insertInto(const std::string &tableName, const std::string &columnName, const Row &inputRow) -> void;
 
     auto update(const std::string &tableName, const std::string &columnName, const std::string &newValue) -> void;
 
@@ -45,8 +45,12 @@ public:
 
     auto evaluateExpression(Row &row, const std::unique_ptr<Expression> &expression) -> bool;
 
+    const std::vector<Column> &getTableColumns(const std::string &tableName);
+
 private:
     std::vector<Table> tables;
+
+
 };
 
 

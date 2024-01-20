@@ -35,7 +35,7 @@ auto CLI::executeCommand(const Command &command) -> void {
             }
         } else if (command.type == "INSERT") {
             // Assuming INSERT command inserts a new row
-            db.insertInto(command.tableName, Row(command.data)); // Row construction might differ
+            db.insertInto(command.tableName, command.columnName,Row(command.data)); // Row construction might differ
         } else if (command.type == "UPDATE") {
             if (command.updatedData.Data.empty()) {
                 throw std::runtime_error("No data provided for update");
@@ -55,12 +55,14 @@ auto CLI::executeCommand(const Command &command) -> void {
             }
 
             auto rows = db.select(command.tableName, columnNames, command.whereClause);
-            displaySelectedRows(rows, columnNames);
+            displaySelectedRows(rows);
         } else if (command.type == "SAVE") {
-            handleSaveCommand(command.value);
-        } else if (command.type == "LOAD") {
-            handleLoadCommand(command.value);
-        } else {
+            FileOps::saveDatabase(db, command.value);
+        }
+        else if (command.type == "LOAD") {
+            FileOps::loadDatabase(command.value);
+        }
+        else {
             throw std::runtime_error("Invalid command");
         }
 
@@ -69,31 +71,16 @@ auto CLI::executeCommand(const Command &command) -> void {
     }
 }
 
-auto CLI::displaySelectedRows(const std::vector<Row> &rows, const std::vector<std::string> &columnNames) -> void {
-    for (Row row: rows) {
-        for (const auto &columnName: columnNames) {
-            std::cout << row.getValue(columnName) << " ";
+auto CLI::displaySelectedRows(const std::vector<Row> &rows) -> void {
+    for (const Row& row : rows) {
+        for (const auto& value : row.Data) {  // Directly access the data in each row
+            std::cout << value << " ";
         }
         std::cout << std::endl;
     }
 }
 
-auto CLI::handleSaveCommand(const std::string &filename) -> void {
-    try {
-        FileOps::saveDatabase(db, filename);
-        std::cout << "Database saved successfully to " << filename << std::endl;
-    } catch (const std::exception &e) {
-        std::cerr << "Error saving database: " << e.what() << std::endl;
-    }
-}
 
-auto CLI::handleLoadCommand(const std::string &filename) -> void {
-    try {
-        db = FileOps::loadDatabase(filename);
-        std::cout << "Database loaded successfully from " << filename << std::endl;
-    } catch (const std::exception &e) {
-        std::cerr << "Error loading database: " << e.what() << std::endl;
-    }
-}
+
 
 

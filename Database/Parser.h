@@ -8,7 +8,6 @@
 
 
 struct Command {
-
     std::string type; // CREATE, DROP, ADD, etc.
     std::string tableName;
     std::vector<Column> columns;
@@ -18,6 +17,8 @@ struct Command {
     Row data;
     std::vector<std::string> additionalData;
     std::string value;
+    static const std::vector<Column> emptyColumns;
+    Command() : updatedData(emptyColumns), data(emptyColumns) {}
 };
 class Database;
 class Parser {
@@ -50,6 +51,11 @@ private:
     auto joinValidatedData(const std::vector<std::string>& data) -> std::string;
     auto isBoolean(const std::string &value) -> bool;
     auto isInteger(const std::string &value) -> bool;
+    auto parseSaveCommand(const std::vector<std::string>& tokens, Command& cmd) -> void;
+
+    auto joinFilePath(const std::vector<std::string> &pathTokens) -> std::string;
+
+    auto parseLoadCommand(const std::vector<std::string> &tokens, Command &cmd) -> void;
 };
 
 #endif // PARSER_H

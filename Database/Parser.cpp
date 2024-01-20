@@ -84,14 +84,14 @@ auto Parser::parseExpression(std::vector<std::string> &tokens, size_t &currentIn
 
     return expr;
 }
-
+const std::vector<Column> Command::emptyColumns = {};
 auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
     std::vector<std::string> tokens = tokenize(commandStr, ' ');
-    Command cmd;
-
     if (tokens.empty()) {
         throw std::runtime_error("Empty command string");
     }
+
+    Command cmd;
 
     cmd.type = tokens[0];
     if (cmd.type == "CREATE") {
@@ -110,11 +110,19 @@ auto Parser::parseSQLCommand(const std::string &commandStr) -> Command {
         parseInsertCommand(tokens, cmd);
     } else if (cmd.type == "REMOVE") {
         parseDeleteColumnCommand(tokens, cmd);
+    } else if (cmd.type == "SAVE"){
+        parseSaveCommand(tokens, cmd);
+    } else if (cmd.type == "LOAD") {
+        parseLoadCommand(tokens, cmd);
     }
-
+    else {
+        throw std::runtime_error("Unknown command type: " + cmd.type);
+    }
 
     return cmd;
 }
+
+
 
 
 auto Parser::parseCreateCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
@@ -214,16 +222,17 @@ auto Parser::parseUpdateCommand(const std::vector<std::string> &tokens, Command 
     }
 
     cmd.type = "UPDATE";
-    cmd.columnName = tokens[1]; // The column name to be updated
-    cmd.tableName = tokens[3]; // The table name
-
-    // Initialize an empty Row object for updatedData
-    cmd.updatedData = Row();
+    cmd.columnName = tokens[1]; // Column name to be updated
+    cmd.tableName = tokens[3]; // Table name
 
     // Extracting the updated data
     size_t i = 6; // Start from the token after '['
     if (i < tokens.size() && tokens[i] != "]") {
-        cmd.updatedData.Data.push_back(tokens[i]); // Add the new value to the Row's Data vector
+        std::string updatedValue = tokens[i]; // Extract the new value
+
+        // Initialize a Row object with an empty columns vector for now
+        cmd.updatedData = Row(std::vector<Column>());
+        cmd.updatedData.Data.push_back(updatedValue); // Add the new value to the Row's Data vector
     } else {
         throw std::runtime_error("Expected new value in UPDATE command");
     }
@@ -261,7 +270,7 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
     }
 
     // Initialize an empty Row object and add the data
-    cmd.data = Row();
+    cmd.data = Row(std::vector<Column>());
     cmd.data.Data.push_back(data);
 }
 
@@ -365,9 +374,36 @@ auto Parser::isInteger(const std::string &value) -> bool {
     return (*p == 0);
 }
 
+auto Parser::parseSaveCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
+    if (tokens.size() < 2) {
+        throw std::runtime_error("Invalid syntax for SAVE command");
+    }
 
+    cmd.type = "SAVE";
+    std::vector<std::string> filePathTokens(tokens.begin() + 1, tokens.end());
+    cmd.value = joinFilePath(filePathTokens); // 'value' field will store the file path
+}
 
+auto Parser::parseLoadCommand(const std::vector<std::string> &tokens, Command &cmd) -> void {
+        if (tokens.size() < 2) {
+            throw std::runtime_error("Invalid syntax for LOAD command");
+        }
 
+        cmd.type = "LOAD";
+        // Since the file path might contain spaces, we join all the tokens back into a single string
+        std::string filePath = joinFilePath(std::vector<std::string>(tokens.begin() + 1, tokens.end()));
+        cmd.value = filePath;
+    }
 
+auto Parser::joinFilePath(const std::vector<std::string>& pathTokens) -> std::string {
+    std::string filePath;
+    for (const auto& token : pathTokens) {
+        if (!filePath.empty()) {
+            filePath += "";
+        }
+        filePath += token;
+    }
+    return filePath;
+}
 
 

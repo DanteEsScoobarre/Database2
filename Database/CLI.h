@@ -9,11 +9,10 @@ class CLI {
 public:
     CLI(Database& Database, Parser& parser) : db(Database), parser(parser) {
     }
-    auto displaySelectedRows(const std::vector<Row>& rows, const std::vector<std::string>& columnNames) -> void;
+    auto displaySelectedRows(const std::vector<Row> &rows) -> void;
     auto executeCommand(const Command &command) -> void;
     auto run() -> void;
-    auto handleSaveCommand(const std::string& filename) -> void;
-    auto handleLoadCommand(const std::string& filename) -> void;
+
 
 private:
     Database& db;
