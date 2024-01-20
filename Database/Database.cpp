@@ -2,6 +2,25 @@
 #include "Row.h"
 
 
+
+auto Database::getDataTypeForColumn(const std::string &tableName, const std::string &columnName) const {
+    for (const auto& table : getTables()) {
+
+        std::cout << table.name << std::endl;
+        if (table.name == tableName) {
+            for (const auto& column : table.columns) {
+                if (column.name == columnName) {
+                    return column.type;
+                }
+            }
+            throw std::runtime_error("Column not found: " + columnName);
+        }
+    }
+    throw std::runtime_error("Table not found in datatype: " + tableName);
+}
+
+
+
 auto findTable(std::vector<Table> &tables, const std::string &tableName) {
     return std::ranges::find_if(tables.begin(), tables.end(), [&tableName](const Table &table) {
         return table.name == tableName;
@@ -86,7 +105,8 @@ auto Database::insertInto(const std::string &tableName, const std::string &colum
         throw std::runtime_error("Input row should have exactly one value for the specified column");
     }
 
-    // Parser for data type validation
+    // Parser for data type validatiob;
+
     Parser parser;
     if (!parser.validateDataType(inputRow.Data[0], tableIt->columns[columnIndex].type)) {
         throw std::runtime_error("Data type mismatch for column: " + columnName);
@@ -283,9 +303,7 @@ auto Row::getValue(const std::string &columnName) -> std::string const {
     }
     throw std::runtime_error("Error: Column name '" + columnName + "' not found in Row::getValue");
 }
-auto Row::setColumns(const std::vector<Column> &cols) -> void {
-    columns = &cols;
-}
+
 
 
 
@@ -296,9 +314,7 @@ const std::vector<Column>& Database::getTableColumns(const std::string& tableNam
     }
     return tableIt->columns;
 }
-auto Row::isColumnSet(size_t index)  -> bool {
-    return index < columnsSet.size() && columnsSet[index];
-}
+
 
 auto Row::canUpdate(size_t columnIndex) -> bool {
     return columnIndex < Data.size() && Data[columnIndex].empty();

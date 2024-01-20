@@ -21,10 +21,6 @@ struct Row {
 
     auto getValue(const std::string &columnName) -> std::string const;
 
-    auto setColumns(const std::vector<Column> &cols) -> void;
-
-
-    bool isColumnSet(size_t index);
 
     auto canUpdate(size_t columnIndex) -> bool;
 

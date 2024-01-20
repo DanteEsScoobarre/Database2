@@ -13,5 +13,6 @@ struct Table {
     std::string name;
     std::vector<Column> columns;
     std::vector<Row> rows;
+
 };
 #endif //DATABASE2_TABLE_H

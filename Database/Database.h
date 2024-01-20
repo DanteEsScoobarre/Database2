@@ -36,8 +36,10 @@ public:
                 const std::string &whereClause) -> std::vector<Row>;
 
     //Saving to a file
-    auto getTables() const -> const std::vector<Table>;
 
+
+    auto getTables() const -> const std::vector<Table>;
+    auto getDataTypeForColumn(const std::string &tableName, const std::string &columnName) const;
     auto addTable(const Table &table) -> void;
 
 
@@ -47,9 +49,11 @@ public:
 
     const std::vector<Column> &getTableColumns(const std::string &tableName);
 
+
+
+
 private:
     std::vector<Table> tables;
-
 
 };
 

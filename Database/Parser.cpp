@@ -1,5 +1,7 @@
 #include "Parser.h"
 
+
+
 auto Parser::tokenize(const std::string &str, char delimiter) -> std::vector<std::string> {
     std::vector<std::string> tokens;
     std::string currentToken;
@@ -173,7 +175,7 @@ auto Parser::parseAddCommand(const std::vector<std::string> &tokens, Command &cm
     }
 
     std::string columnName = *(startBracketPos + 1);
-    std::string columnType = *(startBracketPos + 2);
+    std::string columnType = *(endBracketPos - 1);
 
     if (*(startBracketPos + 2) != ",") {
         throw std::runtime_error("Invalid syntax for ADD command: Missing comma in column definition");
@@ -275,7 +277,7 @@ auto Parser::parseInsertCommand(const std::vector<std::string> &tokens, Command 
 }
 
 
-void Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd) {  // Find the position of "FROM" and "IN" in the tokens
+auto Parser::parseDeleteDataCommand(std::vector<std::string> &tokens, Command &cmd)  -> void{
     auto fromPos = std::find(tokens.begin(), tokens.end(), "FROM");
     auto inPos = std::find(tokens.begin(), tokens.end(), "IN");
 
@@ -355,14 +357,13 @@ auto Parser::validateDataType(const std::string &value, const std::string &type)
     } else if (type == "bool") {
         return isBoolean(value);
     } else if (type == "string") {
-        return true;
+        return !value.empty() && value.front() == '\'' && value.back() == '\'';
     } else {
-        // Handle other types or throw an error
     }
     return false;
 }
 auto Parser::isBoolean(const std::string &value) -> bool {
-    return (value == "true" || value == "false" || value == "NULL");
+    return value == "(true)" || value == "(false)" || value == "(null)";
 }
 
 auto Parser::isInteger(const std::string &value) -> bool {
@@ -405,5 +406,15 @@ auto Parser::joinFilePath(const std::vector<std::string>& pathTokens) -> std::st
     }
     return filePath;
 }
+
+
+
+bool Parser::isString(const std::string &value) {
+    return !value.empty() && value.front() == '\'' && value.back() == '\'';
+}
+
+
+
+
 
 
